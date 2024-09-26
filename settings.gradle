@@ -1,0 +1,9 @@
+rootProject.name = 'getdata'
+include 'server'
+include 'auth'
+include 'gateway'
+include 'company'
+include 'user'
+include 'channel'
+include 'datamanagemant'
+
