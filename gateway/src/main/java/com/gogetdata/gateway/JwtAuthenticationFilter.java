@@ -1,10 +1,12 @@
-package com.project.gateway;
+package com.gogetdata.gateway;
+
 import com.gogetdata.gateway.application.AuthService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -13,17 +15,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+
 import javax.crypto.SecretKey;
-
 @Component
-public class LocalJwtAuthenticationFilter implements GlobalFilter {
-
+public class JwtAuthenticationFilter implements GlobalFilter {
     private final String secretKey;
 
     private final AuthService authService;
 
     // FeignClient 와 Global Filter 의 순환참조 문제가 발생하여 Bean 초기 로딩 시 순환을 막기 위해 @Lazy 어노테이션을 추가함.
-    public LocalJwtAuthenticationFilter(@Value("${service.jwt.secret-key}") String secretKey, @Lazy AuthService authService) {
+    public JwtAuthenticationFilter(@Value("${service.jwt.secret-key}") String secretKey, @Lazy AuthService authService) {
         this.secretKey = secretKey;
         this.authService = authService;
     }
@@ -47,7 +48,7 @@ public class LocalJwtAuthenticationFilter implements GlobalFilter {
         exchange.getRequest().mutate()
                 .header("X-User-Id", payload.getPayload().get("user_id").toString())
                 .header("X-Role", payload.getPayload().get("role").toString())
-                .header("X-company_id", payload.getPayload().get("company_id").toString())
+                .header("X-Company_Id", payload.getPayload().get("company_id").toString())
                 .build();
         return chain.filter(exchange);
     }
