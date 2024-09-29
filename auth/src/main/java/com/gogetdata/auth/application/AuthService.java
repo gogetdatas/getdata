@@ -66,6 +66,8 @@ public class AuthService {
                 .compact());
     }
     public Boolean verifyUser(final Long userId) {
-        return userRepository.findById(userId).isPresent();
+        return userRepository.findById(userId)
+                .map(user -> !user.isDeleted())
+                .orElse(false);
     }
 }

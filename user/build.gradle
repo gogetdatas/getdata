@@ -26,6 +26,8 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
     implementation 'io.jsonwebtoken:jjwt:0.12.6'
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -37,9 +39,13 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation("org.springframework.security:spring-security-test")
+
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-//    implementation 'com.mysql:mysql-connector-j'
+    implementation 'com.mysql:mysql-connector-j'
+
+
 }
 dependencyManagement {
     imports {

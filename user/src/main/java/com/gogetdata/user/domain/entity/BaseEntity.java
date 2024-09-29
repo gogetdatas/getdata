@@ -1,4 +1,4 @@
-package com.gogetdata.auth.domain.entity;
+package com.gogetdata.user.domain.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
