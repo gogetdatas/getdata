@@ -55,7 +55,7 @@ class UserServiceTest {
         @Test
         void successAuthAdmin() {
             // given
-            CustomUserDetails adminUserDetails = new CustomUserDetails(2L, 0L, Collections.singleton(new SimpleGrantedAuthority("ADMIN")));
+            CustomUserDetails adminUserDetails = new CustomUserDetails(2L,  Collections.singleton(new SimpleGrantedAuthority("ADMIN")));
             Long targetUserId = 1L;
 
             // when
@@ -69,7 +69,7 @@ class UserServiceTest {
         @Test
         void successAuthUser() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId, 0L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+            CustomUserDetails customUserDetails = new CustomUserDetails(userId,  Collections.singleton(new SimpleGrantedAuthority("USER")));
 
             // when
             boolean result = userService.checkAuth(userId, customUserDetails);
@@ -82,7 +82,7 @@ class UserServiceTest {
         @Test
         void failAuthUser() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(2L, 0L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+            CustomUserDetails customUserDetails = new CustomUserDetails(2L,  Collections.singleton(new SimpleGrantedAuthority("USER")));
 
             // when
             Throwable throwable = catchThrowable(() -> userService.checkAuth(userId, customUserDetails));
@@ -109,7 +109,6 @@ class UserServiceTest {
             assertThat(result.getUserId()).isEqualTo(1L);
             assertThat(result.getUserName()).isEqualTo("abc");
             assertThat(result.getEmail()).isEqualTo("test@test");
-            assertThat(result.getCompanyStatus()).isEqualTo(0L);
             assertThat(result.getUserType()).isEqualTo(UserTypeEnum.USER);
         }
 
@@ -132,7 +131,7 @@ class UserServiceTest {
             // given
             user.delete();  // 유저를 삭제된 상태로 설정
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId, 0L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+            CustomUserDetails customUserDetails = new CustomUserDetails(userId,  Collections.singleton(new SimpleGrantedAuthority("USER")));
 
             // when
             Throwable throwable = catchThrowable(() -> userService.readMyInfo(userId, customUserDetails));
@@ -150,7 +149,7 @@ class UserServiceTest {
         @Test
         void successReadMyInfo() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId, 0L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+            CustomUserDetails customUserDetails = new CustomUserDetails(userId,  Collections.singleton(new SimpleGrantedAuthority("USER")));
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // when
@@ -161,7 +160,6 @@ class UserServiceTest {
             assertThat(result.userId()).isEqualTo(1L);
             assertThat(result.userName()).isEqualTo("abc");
             assertThat(result.email()).isEqualTo("test@test");
-            assertThat(result.companyStatus()).isEqualTo(0L);
         }
     }
 
@@ -172,7 +170,7 @@ class UserServiceTest {
         @Test
         void successUpdate() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId, 0L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+            CustomUserDetails customUserDetails = new CustomUserDetails(userId,  Collections.singleton(new SimpleGrantedAuthority("USER")));
             UpdateMyInfoRequest updateMyInfo = new UpdateMyInfoRequest("abcd");
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
@@ -191,13 +189,14 @@ class UserServiceTest {
         @Test
         void successDelete() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId, 0L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+            CustomUserDetails customUserDetails = new CustomUserDetails(userId, Collections.singleton(new SimpleGrantedAuthority("USER")));
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // when
             DeleteUserResponse result = userService.deleteUser(userId, customUserDetails);
             // then
             assertThat(result.getDelete()).isEqualTo("회원탈퇴");
+
         }
     }
 }

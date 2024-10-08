@@ -22,12 +22,10 @@ public class CustomPreAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String userId = request.getHeader("X-User-Id");
         String role = request.getHeader("X-Role");
-        String companyId = request.getHeader("X-Company_Id");
-        if (userId != null && role != null && companyId != null) {
+        if (userId != null && role != null) {
             SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
             CustomUserDetails userDetails = new CustomUserDetails(
                     Long.parseLong(userId),
-                    Long.parseLong(companyId),
                     Collections.singletonList(authority)
             );
 

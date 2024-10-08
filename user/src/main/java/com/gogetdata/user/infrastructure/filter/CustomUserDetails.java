@@ -8,12 +8,10 @@ import java.util.Collection;
 public class CustomUserDetails implements UserDetails {
 
     private final Long userId;
-    private final Long companyId;
     private final Collection<? extends GrantedAuthority> authorities;
 
-    public CustomUserDetails(Long userId, Long companyId, Collection<? extends GrantedAuthority> authorities) {
+    public CustomUserDetails(Long userId, Collection<? extends GrantedAuthority> authorities) {
         this.userId = userId;
-        this.companyId = companyId;
         this.authorities = authorities;
     }
 
@@ -21,9 +19,6 @@ public class CustomUserDetails implements UserDetails {
         return userId;
     }
 
-    public Long getCompanyId() {
-        return companyId;
-    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

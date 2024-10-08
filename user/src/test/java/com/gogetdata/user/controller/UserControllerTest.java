@@ -53,7 +53,7 @@ class UserControllerTest {
         @Test
         void successGetMyInfo() throws Exception {
             // given
-            MyInfoResponse mockResponse = new MyInfoResponse(userId, "abc", "test@test", 0L);
+            MyInfoResponse mockResponse = new MyInfoResponse(userId, "abc", "test@test");
             given(userService.readMyInfo(eq(userId), any(CustomUserDetails.class)))
                     .willReturn(mockResponse);
             // when & then
@@ -65,8 +65,7 @@ class UserControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.userId").value(userId))
                     .andExpect(jsonPath("$.userName").value("abc"))
-                    .andExpect(jsonPath("$.email").value("test@test"))
-                    .andExpect(jsonPath("$.companyStatus").value(0));
+                    .andExpect(jsonPath("$.email").value("test@test"));
         }
 
 
@@ -123,7 +122,7 @@ class UserControllerTest {
             // given
             UpdateMyInfoRequest request = new UpdateMyInfoRequest("abcd");
 
-            MyInfoResponse mockResponse = new MyInfoResponse(userId, "abcd", "test@test.com", 0L);
+            MyInfoResponse mockResponse = new MyInfoResponse(userId, "abcd", "test@test.com");
 
             // 서비스 메서드가 호출되면 mockResponse를 반환하도록 설정
             when(userService.updateMyInfo(eq(userId), any(),any(UpdateMyInfoRequest.class))).thenReturn(mockResponse);
@@ -140,8 +139,7 @@ class UserControllerTest {
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.userId").value(userId))
                     .andExpect(jsonPath("$.userName").value("abcd"))
-                    .andExpect(jsonPath("$.email").value("test@test.com"))
-                    .andExpect(jsonPath("$.companyStatus").value(0L));
+                    .andExpect(jsonPath("$.email").value("test@test.com"));
 
             // 서비스 메서드가 정확히 호출되었는지 검증
         Mockito.verify(userService).updateMyInfo(eq(userId), any(),any(UpdateMyInfoRequest.class));

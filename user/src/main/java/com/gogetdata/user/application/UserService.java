@@ -1,9 +1,9 @@
 package com.gogetdata.user.application;
 
-import com.gogetdata.user.application.dto.DeleteUserResponse;
-import com.gogetdata.user.application.dto.MyInfoResponse;
-import com.gogetdata.user.application.dto.UpdateMyInfoRequest;
+import com.gogetdata.user.application.dto.*;
 import com.gogetdata.user.infrastructure.filter.CustomUserDetails;
+
+import java.util.List;
 
 public interface UserService {
 
@@ -12,4 +12,11 @@ public interface UserService {
     MyInfoResponse updateMyInfo(Long userId, CustomUserDetails userDetails, UpdateMyInfoRequest updateMyInfoRequest);
 
     DeleteUserResponse deleteUser(Long userId, CustomUserDetails customUserDetails);
+
+    List<RegistrationResults> registrationUsers(List<UserRegistrationDto> userRegistrationDto);
+    Boolean checkUser(Long userId);
+
+    Boolean deleteCompanyUser(Long userId);
+
+    RegistrationResult registrationUser(Long userId);
 }
