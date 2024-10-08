@@ -9,7 +9,6 @@ import com.gogetdata.company.domain.entity.*;
 import com.gogetdata.company.domain.repository.companyteam.CompanyTeamRepository;
 import com.gogetdata.company.domain.repository.companyteamuser.CompanyTeamUserRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
-import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,18 +24,18 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
     private final CompanyTeamRepository companyTeamRepository;
     private final CompanyTeamUserRepository companyTeamUserRepository;
     @Override
-    public MessageResponse requestCompanyTeam(CustomUserDetails userDetails, Long companyId, RequestCompanyTeamRequest requestCompanyTeamRequest) {
-        validateUserAffiliation(userDetails,companyId);
+    public MessageResponse requestCompanyTeam(Long loginUserId,String role, Long companyId, RequestCompanyTeamRequest requestCompanyTeamRequest) {
+        validateUserAffiliation(loginUserId,role,companyId);
 
         CompanyTeam companyTeam = CompanyTeam.create(companyId, requestCompanyTeamRequest.getCompanyTeamName(), CompanyTeamStatus.PENDING);
-        companyTeam.setCreatedBy(userDetails.getUserId());
+        companyTeam.setCreatedBy(loginUserId);
         companyTeamRepository.save(companyTeam);
         return MessageResponse.from("요청완료");
     }
 
     @Override
-    public List<RequestCompanyTeamResponse> requestReadCompanyTeam(CustomUserDetails userDetails, Long companyId) {
-        authorizeAdminOrCompanyAdmin(userDetails,companyId);
+    public List<RequestCompanyTeamResponse> requestReadCompanyTeam(Long loginUserId,String role, Long companyId) {
+        authorizeAdminOrCompanyAdmin(loginUserId,role,companyId);
 
         List<CompanyTeam> companyTeams = companyTeamRepository.readRequestCompanyTeams(companyId);
         return companyTeams.stream()
@@ -46,8 +45,8 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
 
     @Override
     @Transactional
-    public MessageResponse approveRequestCompanyTeam(CustomUserDetails userDetails, Long companyTeamId,Long companyId) {
-        authorizeAdminOrCompanyAdmin(userDetails,companyId);
+    public MessageResponse approveRequestCompanyTeam(Long loginUserId,String role, Long companyTeamId,Long companyId) {
+        authorizeAdminOrCompanyAdmin(loginUserId,role,companyId);
         CompanyTeam companyTeam = companyTeamRepository.readRequestCompanyTeam(companyTeamId);
         companyTeam.approveTeam();
         companyTeamRepository.save(companyTeam);
@@ -65,8 +64,8 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
 
     @Override
     @Transactional
-    public MessageResponse updateCompanyTeamName(CustomUserDetails userDetails, Long companyTeamId, Long companyId, UpdateTeamRequest updateTeamRequest) {
-        validateUserAffiliation(userDetails,companyId);
+    public MessageResponse updateCompanyTeamName(Long loginUserId,String role, Long companyTeamId, Long companyId, UpdateTeamRequest updateTeamRequest) {
+        validateUserAffiliation(loginUserId,role,companyId);
 
         CompanyTeam companyTeam=validateCompanyTeamNotDeleted(isExistCompanyTeam(companyTeamId));
         companyTeam.updateTeamName(updateTeamRequest.getTeamName());
@@ -76,8 +75,8 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
 
     @Override
     @Transactional
-    public MessageResponse deleteCompanyTeam(CustomUserDetails userDetails, Long companyTeamId, Long companyId) {
-        validateUserAffiliation(userDetails,companyId);
+    public MessageResponse deleteCompanyTeam(Long loginUserId,String role, Long companyTeamId, Long companyId) {
+        validateUserAffiliation(loginUserId,role,companyId);
 
         CompanyTeam companyTeam=validateCompanyTeamNotDeleted(isExistCompanyTeam(companyTeamId));
         companyTeam.deleteTeam();
@@ -87,8 +86,8 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
 
     @Override
     @Transactional
-    public MessageResponse rejectRequestCompanyTeam(CustomUserDetails userDetails, Long companyTeamId, Long companyId) {
-        validateUserAffiliation(userDetails,companyId);
+    public MessageResponse rejectRequestCompanyTeam(Long loginUserId,String role, Long companyTeamId, Long companyId) {
+        validateUserAffiliation(loginUserId,role,companyId);
 
         CompanyTeam companyTeam = companyTeamRepository.readRequestCompanyTeam(companyTeamId);
         companyTeam.rejectTeam();
@@ -96,28 +95,27 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
         return MessageResponse.from("거절");
     }
 
-    private void authorizeAdminOrCompanyAdmin(CustomUserDetails customUserDetails, Long companyId) {
-        if (isAdmin(customUserDetails)) {
+    private void authorizeAdminOrCompanyAdmin(Long loginUserId,String role, Long companyId) {
+        if (isAdmin(role)) {
             return;
         }
 
-        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, customUserDetails.getUserId());
+        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, loginUserId);
         if (loginUser == null || !loginUser.getType().getAuthority().equals("ADMIN")) {
             throw new IllegalArgumentException("권한없음");
         }
     }
-    private void validateUserAffiliation(CustomUserDetails customUserDetails , Long companyId) {
-        if (isAdmin(customUserDetails)) {
+    private void validateUserAffiliation(Long loginUserId,String role , Long companyId) {
+        if (isAdmin(role)) {
             return;
         }
-        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, customUserDetails.getUserId());
+        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, loginUserId);
         if (loginUser == null) {
             throw new IllegalArgumentException("권한없음");
         }
     }
-    private boolean isAdmin(CustomUserDetails customUserDetails){
-        return customUserDetails.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+    private boolean isAdmin(String role){
+        return role.equals("ADMIN");
     }
     public CompanyTeam isExistCompanyTeam(Long companyTeamId) {
         return companyTeamRepository.findById(companyTeamId)

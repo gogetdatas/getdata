@@ -9,7 +9,6 @@ import com.gogetdata.company.domain.entity.*;
 import com.gogetdata.company.domain.repository.companyteamuser.CompanyTeamUserRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
 import com.gogetdata.company.domain.service.CompanyTeamUserServiceImpl;
-import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,10 +17,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,15 +33,15 @@ class CompanyTeamUserServiceTest {
     @Mock
     private CompanyTeamUserRepository companyTeamUserRepository;
     private Long companyId;
-    private CustomUserDetails customUserDetails;
     private Long companyTeamId;
     private Long userId;
+    private Long loginUserId;
 
     @BeforeEach
     void setUp() {
         this.companyId = 1L;
-        this.customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")));
         userId = 1L;
+        this.loginUserId = 1L;
         companyId = 100L;
         companyTeamId = 200L;
     }
@@ -55,10 +52,10 @@ class CompanyTeamUserServiceTest {
         @Test
         void successApplyToJoinTeam() {
             // given
-            CompanyUser loginUser = new CompanyUser(companyId,customUserDetails.getUserId(),1L,AffiliationStatus.APPROVED,CompanyUserType.USER,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(companyId,customUserDetails.getUserId())).willReturn(loginUser);
+            CompanyUser loginUser = new CompanyUser(companyId,loginUserId,1L,AffiliationStatus.APPROVED,CompanyUserType.USER,"user1","user1@email.com");
+            given(companyUserRepository.isApprovalUser(companyId,loginUserId)).willReturn(loginUser);
             // when
-            MessageResponse result = companyTeamUserService.applyToJoinTeam(customUserDetails,companyId,customUserDetails.getUserId());
+            MessageResponse result = companyTeamUserService.applyToJoinTeam(loginUserId,"USER",companyId,companyTeamId);
             // then
             assertThat(result.getMessage()).isEqualTo("요청완료");
         }
@@ -87,7 +84,7 @@ class CompanyTeamUserServiceTest {
                     .willReturn(existingUsers);
 
             // when
-            List<MessageResponse> messages = companyTeamUserService.acceptJoinRequest(customUserDetails, companyId, companyTeamId, acceptJoinRequest);
+            List<MessageResponse> messages = companyTeamUserService.acceptJoinRequest(loginUserId,"USER", companyId, companyTeamId, acceptJoinRequest);
             // then
             assertThat(messages).hasSize(2);
             assertThat(messages).extracting("message").containsExactlyInAnyOrder("User2등록", "User3등록");
@@ -175,14 +172,14 @@ class CompanyTeamUserServiceTest {
         @Test
         void successRejectJoinRequest() {
             //given
-            given(companyTeamUserRepository.isExistAdminUser(companyTeamId, customUserDetails.getUserId())).willReturn(true);
+            given(companyTeamUserRepository.isExistAdminUser(companyTeamId, loginUserId)).willReturn(true);
             CompanyTeamUser companyTeamUser = new CompanyTeamUser(10L, companyTeamId, 10L, "User2", "user2@email.com",
                     CompanyTeamUserStatus.PENDING, CompanyTeamUserType.UNASSIGN);
             given(companyTeamUserRepository.isExistUser(companyId, companyTeamId, companyTeamUser.getCompanyTeamUserId()))
                     .willReturn(companyTeamUser);
 
             //when
-            MessageResponse messages = companyTeamUserService.rejectJoinRequest(customUserDetails, companyId, companyTeamId, 10L);
+            MessageResponse messages = companyTeamUserService.rejectJoinRequest(loginUserId,"USER", companyId, companyTeamId, 10L);
             //then
             assertThat(messages.getMessage()).isEqualTo("거절");
         }
@@ -194,12 +191,12 @@ class CompanyTeamUserServiceTest {
             @Test
             void successDeleteUserFromTeam() {
                 //given
-                given(companyTeamUserRepository.isExistAdminUser(companyTeamId, customUserDetails.getUserId())).willReturn(true);
+                given(companyTeamUserRepository.isExistAdminUser(companyTeamId, loginUserId)).willReturn(true);
                 CompanyTeamUser companyTeamUser = new CompanyTeamUser(10L, companyTeamId, 10L, "User2", "user2@email.com",
                         CompanyTeamUserStatus.APPROVED, CompanyTeamUserType.USER);
                 given(companyTeamUserRepository.findById(10L)).willReturn(Optional.of(companyTeamUser));
                 //when
-                MessageResponse messages = companyTeamUserService.deleteUserFromTeam(customUserDetails, companyId, companyTeamId, 10L);
+                MessageResponse messages = companyTeamUserService.deleteUserFromTeam(loginUserId,"USER", companyId, companyTeamId, 10L);
                 //then
                 assertThat(messages.getMessage()).isEqualTo("삭제");
             }
@@ -212,7 +209,7 @@ class CompanyTeamUserServiceTest {
             @Test
             void successUpdateUserPermission() { //
                 //given
-                given(companyTeamUserRepository.isExistAdminUser(companyTeamId, customUserDetails.getUserId())).willReturn(true);
+                given(companyTeamUserRepository.isExistAdminUser(companyTeamId, loginUserId)).willReturn(true);
                 CompanyTeamUser companyTeamUser = new CompanyTeamUser(10L, companyTeamId, 10L, "User2", "user2@email.com",
                         CompanyTeamUserStatus.APPROVED, CompanyTeamUserType.USER);
                 UpdateUserPerMissionRequest updateUserPerMissionRequest = new UpdateUserPerMissionRequest(1L,"ADMIN");
@@ -220,7 +217,7 @@ class CompanyTeamUserServiceTest {
                         .willReturn(companyTeamUser);
 
                 //when
-                MessageResponse messages = companyTeamUserService.updateUserPermission(customUserDetails, companyId, companyTeamId, 10L,updateUserPerMissionRequest);
+                MessageResponse messages = companyTeamUserService.updateUserPermission(loginUserId,"USER", companyId, companyTeamId, 10L,updateUserPerMissionRequest);
                 //then
                 assertThat(messages.getMessage()).isEqualTo("변경");
             }
@@ -237,7 +234,7 @@ class CompanyTeamUserServiceTest {
                         new CompanyTeam(1L,companyId,"team1", CompanyTeamStatus.APPROVED),
                         new CompanyTeam(2L,companyId,"team2", CompanyTeamStatus.APPROVED)
                 );
-                given(companyTeamUserRepository.getMyTeams(customUserDetails.getUserId()))
+                given(companyTeamUserRepository.getMyTeams(loginUserId))
                         .willReturn(companyTeams);
 
                 List<CompanyTeamResponse> companyTeamResponses= List.of(
@@ -245,7 +242,7 @@ class CompanyTeamUserServiceTest {
                         new CompanyTeamResponse(2L,"team2")
                 );
                 //when
-                List<CompanyTeamResponse> results = companyTeamUserService.getMyTeams(customUserDetails);
+                List<CompanyTeamResponse> results = companyTeamUserService.getMyTeams(loginUserId,"USER");
                 //then
                 assertThat(results).containsExactlyElementsOf(companyTeamResponses);
             }
@@ -259,7 +256,7 @@ class CompanyTeamUserServiceTest {
             @Test
             void successGetUsersInTeam() {
                 //given
-                given(companyTeamUserRepository.isExistAdminOrUser(companyTeamId, customUserDetails.getUserId())).willReturn(true);
+                given(companyTeamUserRepository.isExistAdminOrUser(companyTeamId, loginUserId)).willReturn(true);
                 List<CompanyTeamUser> companyTeamUsers = List.of(
                         new CompanyTeamUser(1L,companyTeamId,1L,"user1","user1@email.com",CompanyTeamUserStatus.APPROVED,CompanyTeamUserType.USER),
                         new CompanyTeamUser(2L,companyTeamId,2L,"user2","user2@email.com",CompanyTeamUserStatus.APPROVED,CompanyTeamUserType.USER)
@@ -271,7 +268,7 @@ class CompanyTeamUserServiceTest {
                         new CompanyTeamUserResponse(2L,"user2","user2@email.com",CompanyTeamUserType.USER)
                 );
                 //when
-                List<CompanyTeamUserResponse> results = companyTeamUserService.getUsersInTeam(customUserDetails,companyTeamId);
+                List<CompanyTeamUserResponse> results = companyTeamUserService.getUsersInTeam(loginUserId,"USER",companyTeamId);
                 //then
                 assertThat(results).containsExactlyElementsOf(companyTeamUserResponses);
             }

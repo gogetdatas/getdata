@@ -10,7 +10,6 @@ import com.gogetdata.company.domain.entity.CompanyUser;
 import com.gogetdata.company.domain.repository.company.CompanyRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
 import com.gogetdata.company.domain.service.CompanyServiceImpl;
-import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -19,12 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
-import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,15 +41,15 @@ class CompanyServiceTest {
     @Mock
     private UserService userService;
     private Long companyId;
+    private Long userId;
     private Company company;
-    private CustomUserDetails customUserDetails;
 
     @BeforeEach
     void setUp() {
         this.companyId = 1L;
         this.company = Company.create("abc", "@@@@@@@aldawldkawdwq");
         ReflectionTestUtils.setField(company, "companyId", this.companyId);
-        this.customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+        this.userId = 1L;
     }
 
     @Nested
@@ -64,17 +60,17 @@ class CompanyServiceTest {
         void successCreateCompany() {
             // given
             CreateCompanyRequest createCompanyRequest = new CreateCompanyRequest("Test Company");
-            RegistrationResult result = new RegistrationResult(1L, "abc", "testuser@example.com", true);
+            RegistrationResult result = new RegistrationResult(userId, "abc", "testuser@example.com", true);
             Company mockCompany = Company.create(createCompanyRequest.getCompanyName(), UUID.randomUUID().toString());
 
             when(companyRepository.save(any(Company.class))).thenReturn(mockCompany);
-            when(userService.registerUser(customUserDetails.getUserId())).thenReturn(result);
+            when(userService.registerUser(userId)).thenReturn(result);
             // when
-            CompanyResponse response = companyService.createCompany(customUserDetails, createCompanyRequest);
+            CompanyResponse response = companyService.createCompany(userId,"USER", createCompanyRequest);
 
             // then
             verify(companyRepository, times(1)).save(any(Company.class));
-            verify(userService, times(1)).registerUser(customUserDetails.getUserId());
+            verify(userService, times(1)).registerUser(userId);
             verify(companyUserRepository, times(1)).save(any(CompanyUser.class));
             assertThat(response).isNotNull();
             assertThat(response.companyId()).isEqualTo(mockCompany.getCompanyId());
@@ -88,9 +84,9 @@ class CompanyServiceTest {
             // given
             CreateCompanyRequest createCompanyRequest = new CreateCompanyRequest("Test Company");
             RegistrationResult result = new RegistrationResult(1L, "abc", "testuser@example.com", false);
-            when(userService.registerUser(customUserDetails.getUserId())).thenReturn(result);
+            when(userService.registerUser(userId)).thenReturn(result);
             // when
-            Throwable throwable = catchThrowable(() -> companyService.createCompany(customUserDetails, createCompanyRequest));
+            Throwable throwable = catchThrowable(() -> companyService.createCompany(userId,"USER", createCompanyRequest));
             // then
             assertThat(throwable).isInstanceOf(IllegalAccessError.class);
 
@@ -105,11 +101,9 @@ class CompanyServiceTest {
         void SuccessReadCompany() {
             // given
             Company userCompany = new Company(1L,"abc","@@@@@@@aldawldkawdwq");
-            given(companyUserRepository.getCompanyUser(customUserDetails.getUserId(), companyId)).willReturn(userCompany);
-
-            customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+            given(companyUserRepository.getCompanyUser(userId, companyId)).willReturn(userCompany);
             // when
-            CompanyResponse response = companyService.readCompany(customUserDetails, companyId);
+            CompanyResponse response = companyService.readCompany(userId,"USER", companyId);
 
             // then
             assertThat(response).isNotNull();
@@ -133,11 +127,11 @@ class CompanyServiceTest {
         void SuccessUpdateCompany() {
             // given
             Company userCompany = new Company(1L,"abc","@@@@@@@aldawldkawdwq");
-            given(companyUserRepository.getCompanyUserAdmin(customUserDetails.getUserId(), companyId)).willReturn(userCompany);
+            given(companyUserRepository.getCompanyUserAdmin(userId, companyId)).willReturn(userCompany);
             UpdateCompanyRequest updateCompanyRequest = new UpdateCompanyRequest("acbd");
 
             // when
-            CompanyResponse result = companyService.updateCompany(customUserDetails, companyId, updateCompanyRequest);
+            CompanyResponse result = companyService.updateCompany(userId,"USER", companyId, updateCompanyRequest);
             // then
             assertThat(result.companyName()).isEqualTo("acbd");
 
@@ -147,13 +141,11 @@ class CompanyServiceTest {
         @Test
         void failUpdateCompany() {
             // given
-            Company userCompany = null;
-
-            given(companyUserRepository.getCompanyUserAdmin(customUserDetails.getUserId(), companyId)).willReturn(userCompany);
+            given(companyUserRepository.getCompanyUserAdmin(userId, companyId)).willReturn(null);
 
             UpdateCompanyRequest updateCompanyRequest = new UpdateCompanyRequest("acbd");
             // when
-            Throwable throwable = catchThrowable(() -> companyService.updateCompany(customUserDetails, companyId, updateCompanyRequest));
+            Throwable throwable = catchThrowable(() -> companyService.updateCompany(userId,"USER", companyId, updateCompanyRequest));
 
             // then
             assertThat(throwable).isInstanceOf(IllegalAccessError.class);
@@ -170,9 +162,9 @@ class CompanyServiceTest {
             // given
             Company userCompany = new Company(1L,"abc","@@@@@@@aldawldkawdwq");
 
-            given(companyUserRepository.getCompanyUserAdmin(customUserDetails.getUserId(), companyId)).willReturn(userCompany);
+            given(companyUserRepository.getCompanyUserAdmin(userId, companyId)).willReturn(userCompany);
             // when
-            MessageResponse result = companyService.deleteCompany(companyId, customUserDetails);
+            MessageResponse result = companyService.deleteCompany(userId,"USER",companyId);
             // then
             assertThat(result.getMessage()).isEqualTo("삭제 완료되었습니다.");
         }
@@ -181,10 +173,9 @@ class CompanyServiceTest {
         @Test
         void FailDeleteCompany() {
             // given
-            Company userCompany = null;
-            given(companyUserRepository.getCompanyUserAdmin(customUserDetails.getUserId(), companyId)).willReturn(userCompany);
+            given(companyUserRepository.getCompanyUserAdmin(userId, companyId)).willReturn(null);
             // when
-            Throwable throwable = catchThrowable(() -> companyService.deleteCompany(companyId, customUserDetails));
+            Throwable throwable = catchThrowable(() -> companyService.deleteCompany(userId,"USER",companyId));
             // then
             assertThat(throwable).isInstanceOf(IllegalAccessError.class);
         }

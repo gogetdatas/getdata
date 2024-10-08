@@ -9,7 +9,6 @@ import com.gogetdata.company.domain.entity.CompanyUser;
 import com.gogetdata.company.domain.entity.CompanyUserType;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
 import com.gogetdata.company.domain.service.CompanyUserServiceImpl;
-import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.*;
 import java.util.function.Function;
@@ -40,13 +38,13 @@ class CompanyUserServiceTest {
     private Long companyId;
     private Long companyUserId;
     private CompanyUser companyUser;
-    private CustomUserDetails customUserDetails;
+    private Long loginUserId;
 
     @BeforeEach
     void setUp() {
         this.companyId = 1L;
         this.companyUserId = 1L;
-        this.customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")));
+        this.loginUserId = 1L;
         this.companyUser = CompanyUser.create(1L,1L,AffiliationStatus.APPROVED,CompanyUserType.USER,"user1","user1@email.com");
     }
 
@@ -58,7 +56,7 @@ class CompanyUserServiceTest {
         void successRegisterCompanyUser() {
             // given
             CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(customUserDetails.getUserId(), companyId)).willReturn(loginUser);
+            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
             List<UserRegistrationRequest> userRegistrationRequests = Arrays.asList(
                     new UserRegistrationRequest(1L, 1L, "ADMIN"),
                     new UserRegistrationRequest(2L, 2L, "USER")
@@ -81,16 +79,15 @@ class CompanyUserServiceTest {
 
             // when
             List<CompanyUserRegistrationResponse> response = companyUserService.registerUserToCompany(
-                    customUserDetails, userRegistrationRequests, companyId);
+                    loginUserId,"USER", userRegistrationRequests, companyId);
             // then
             assertThat(response).hasSize(1);
             assertThat(response.get(0).userName()).isEqualTo("User1");
 
             verify(companyUserRepository, times(1)).saveAll(waitingUsers);
-            List<CompanyUser> savedCompanyUsers = waitingUsers;
 
-            assertThat(savedCompanyUsers).hasSize(1);
-            for (CompanyUser companyUser : savedCompanyUsers) {
+            assertThat(waitingUsers).hasSize(1);
+            for (CompanyUser companyUser : waitingUsers) {
                 assertThat(companyUser.getStatus()).isEqualTo(AffiliationStatus.APPROVED);
                 assertThat(companyUser.getType()).isEqualTo(CompanyUserType.ADMIN);
             }
@@ -105,11 +102,11 @@ class CompanyUserServiceTest {
         void successDeleteCompanyUser() {
             // given
             CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(customUserDetails.getUserId(), companyId)).willReturn(loginUser);
+            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
             given(companyUserRepository.findById(companyUserId)).willReturn(Optional.of(companyUser));
             given(userService.deleteCompanyUser(companyUserId)).willReturn(true);
             // when
-            MessageResponse result = companyUserService.deleteCompanyUser(customUserDetails,1L,1L);
+            MessageResponse result = companyUserService.deleteCompanyUser(loginUserId,"USER",1L,1L);
             // then
             assertThat(result.getMessage()).isEqualTo("삭제완료");
 
@@ -124,11 +121,11 @@ class CompanyUserServiceTest {
         void successUpdateCompanyUserType() {
             // given
             CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(customUserDetails.getUserId(), companyId)).willReturn(loginUser);
+            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
             given(companyUserRepository.findById(companyUserId)).willReturn(Optional.of(companyUser));
             UpdateCompanyUserTypeRequest updateCompanyUserTypeRequest = new UpdateCompanyUserTypeRequest("ADMIN");
             // when
-            MessageResponse result = companyUserService.updateCompanyTypeUser(customUserDetails,companyUserId,companyId,updateCompanyUserTypeRequest);
+            MessageResponse result = companyUserService.updateCompanyTypeUser(loginUserId,"USER",companyUserId,companyId,updateCompanyUserTypeRequest);
             // then
             assertThat(result.getMessage()).isEqualTo("타입변경");
 
@@ -141,7 +138,7 @@ class CompanyUserServiceTest {
         @Test
         void successReadsCompanyUsers() {
             CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.USER,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(customUserDetails.getUserId(), companyId)).willReturn(loginUser);
+            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
 
             // given
             List<CompanyUser> companyUsers = List.of(
@@ -155,7 +152,7 @@ class CompanyUserServiceTest {
                 companyUserResponses.add(CompanyUserResponse.from(user));
             }
             // when
-            List<CompanyUserResponse> results = companyUserService.readsCompanyUser(customUserDetails,companyId);
+            List<CompanyUserResponse> results = companyUserService.readsCompanyUser(loginUserId,"USER",companyId);
             // then
             assertThat(results).hasSize(3);
 
@@ -168,14 +165,14 @@ class CompanyUserServiceTest {
         @Test
         void successReadCompanyUser() {
             CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.USER,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(customUserDetails.getUserId(), companyId)).willReturn(loginUser);
+            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
 
             // given
             CompanyUser companyUser = new CompanyUser(1L, companyId, 1L, AffiliationStatus.APPROVED, CompanyUserType.USER, "User1", "User1@email.com");
             given(companyUserRepository.ApprovalUser(companyId,companyUserId)).willReturn(companyUser); // 이거 그냥 companyUserId만 넘겨줘도 되겠다
             CompanyUserResponse companyUserResponses = CompanyUserResponse.from(companyUser);
             // when
-            CompanyUserResponse result = companyUserService.readCompanyUser(customUserDetails,companyId,companyUserId);
+            CompanyUserResponse result = companyUserService.readCompanyUser(loginUserId,"USER",companyId,companyUserId);
             // then
             assertThat(result.userId()).isEqualTo(1L);
 
@@ -191,13 +188,13 @@ class CompanyUserServiceTest {
         @Test
         void requestCompanyUser() {
             // given
-            given(userService.checkUser(customUserDetails.getUserId())).willReturn(true);
-            MyInfoResponse myInfo = new MyInfoResponse(customUserDetails.getUserId(),"user1","user1@email.com",false);
-            given(userService.readUser(customUserDetails.getUserId())).willReturn(myInfo);
+            given(userService.checkUser(loginUserId)).willReturn(true);
+            MyInfoResponse myInfo = new MyInfoResponse(loginUserId,"user1","user1@email.com",false);
+            given(userService.readUser(loginUserId)).willReturn(myInfo);
 
-            CompanyUser companyUser = new CompanyUser(1L, companyId, customUserDetails.getUserId(), AffiliationStatus.PENDING, CompanyUserType.UNASSIGN, myInfo.getUserName(), myInfo.getEmail());
+            CompanyUser companyUser = new CompanyUser(1L, companyId, loginUserId, AffiliationStatus.PENDING, CompanyUserType.UNASSIGN, myInfo.getUserName(), myInfo.getEmail());
             // when
-            MessageResponse result = companyUserService.requestCompanyUser(customUserDetails,companyId);
+            MessageResponse result = companyUserService.requestCompanyUser(loginUserId,"USER",companyId);
             // then
             assertThat(result.getMessage()).isEqualTo("요청완료");
 
@@ -212,11 +209,11 @@ class CompanyUserServiceTest {
         void rejectCompanyUser() {
             // given
             CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(customUserDetails.getUserId(), companyId)).willReturn(loginUser);
-            CompanyUser companyUser = new CompanyUser(1L, companyId, customUserDetails.getUserId(), AffiliationStatus.PENDING, CompanyUserType.UNASSIGN, "user1","user1@email.com");
+            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
+            CompanyUser companyUser = new CompanyUser(1L, companyId, loginUserId, AffiliationStatus.PENDING, CompanyUserType.UNASSIGN, "user1","user1@email.com");
             given(companyUserRepository.waitingForApprovalUser(companyId, companyUserId)).willReturn(companyUser);
             // when
-            MessageResponse result = companyUserService.rejectCompanyUser( customUserDetails,companyId,companyUserId);
+            MessageResponse result = companyUserService.rejectCompanyUser( loginUserId,"USER",companyId,companyUserId);
             // then
             assertThat(result.getMessage()).isEqualTo("거절완료");
 
@@ -231,7 +228,7 @@ class CompanyUserServiceTest {
         void readsRequestCompanyUser() {
             // given
             CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(customUserDetails.getUserId(), companyId)).willReturn(loginUser);
+            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
             List<CompanyWaitingUserResponse> companyUserResponses= List.of(
                     new CompanyWaitingUserResponse(2L,"user2","user2@email.com"),
                     new CompanyWaitingUserResponse(3L,"user3","user3@email.com"),
@@ -244,7 +241,7 @@ class CompanyUserServiceTest {
             );
             given(companyUserRepository.waitingForApprovalUsers(companyId)).willReturn(companyUsers);
             // when
-            List<CompanyWaitingUserResponse> result = companyUserService.readsRequestCompanyUser(customUserDetails,companyId);
+            List<CompanyWaitingUserResponse> result = companyUserService.readsRequestCompanyUser(loginUserId,"USER",companyId);
             // then
             assertThat(result).containsExactlyElementsOf(companyUserResponses);
         }
