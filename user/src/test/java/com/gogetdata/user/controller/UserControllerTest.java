@@ -5,9 +5,6 @@ import com.gogetdata.user.application.UserService;
 import com.gogetdata.user.application.dto.DeleteUserResponse;
 import com.gogetdata.user.application.dto.MyInfoResponse;
 import com.gogetdata.user.application.dto.UpdateMyInfoRequest;
-import com.gogetdata.user.infrastructure.config.SecurityConfig;
-import com.gogetdata.user.infrastructure.filter.CustomPreAuthFilter;
-import com.gogetdata.user.infrastructure.filter.CustomUserDetails;
 import com.gogetdata.user.presentation.UserController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +14,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -26,11 +22,11 @@ import java.util.NoSuchElementException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 @WebMvcTest(controllers = UserController.class)
-@Import({CustomPreAuthFilter.class, SecurityConfig.class})
 
 class UserControllerTest {
     @Autowired
@@ -39,11 +35,13 @@ class UserControllerTest {
     @MockBean
     private UserService userService;
     private Long userId;
+    private Long loginUserId;
     @Autowired
     private ObjectMapper objectMapper;
     @BeforeEach
     void setUp() {
         this.userId = 1L;
+        this.loginUserId = 1L;
     }
 
     @Nested
@@ -53,20 +51,17 @@ class UserControllerTest {
         @Test
         void successGetMyInfo() throws Exception {
             // given
-            MyInfoResponse mockResponse = new MyInfoResponse(userId, "abc", "test@test", 0L);
-            given(userService.readMyInfo(eq(userId), any(CustomUserDetails.class)))
-                    .willReturn(mockResponse);
+            MyInfoResponse mockResponse = new MyInfoResponse(userId, "abc", "test@test",false);
+            given(userService.readMyInfo(eq(userId),eq(loginUserId),any())).willReturn(mockResponse);
             // when & then
             mockMvc.perform(get("/user/{userId}", userId)
-                            .header("X-User-Id", userId.toString())
+                            .header("X-User-Id", loginUserId)
                             .header("X-Role", "USER")
-                            .header("X-Company_Id", "0")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.userId").value(userId))
                     .andExpect(jsonPath("$.userName").value("abc"))
-                    .andExpect(jsonPath("$.email").value("test@test"))
-                    .andExpect(jsonPath("$.companyStatus").value(0));
+                    .andExpect(jsonPath("$.email").value("test@test"));
         }
 
 
@@ -74,14 +69,13 @@ class UserControllerTest {
         @Test
         void failGetMyInfoNotFound() throws Exception {
             // given
-            given(userService.readMyInfo(eq(userId), any(CustomUserDetails.class)))
+            given(userService.readMyInfo(eq(userId),eq(loginUserId),any()))
                     .willThrow(new NoSuchElementException("No user found with id " + userId));
 
             // when & then
             mockMvc.perform(get("/user/{userId}", userId)
-                            .header("X-User-Id", userId.toString())
+                            .header("X-User-Id", loginUserId)
                             .header("X-Role", "USER")
-                            .header("X-Company_Id", "0")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound())
                     .andExpect(content().string("No user found with id " + userId));
@@ -91,14 +85,13 @@ class UserControllerTest {
         @Test
         void failGetMyInfoIsDeleted() throws Exception {
             // given
-            given(userService.readMyInfo(eq(userId), any(CustomUserDetails.class)))
+            given(userService.readMyInfo(eq(userId),eq(loginUserId),any()))
                     .willThrow(new NoSuchElementException("User with id " + userId + " is deleted."));
 
             // when & then
             mockMvc.perform(get("/user/{userId}", userId)
-                            .header("X-User-Id", userId.toString())
+                            .header("X-User-Id", loginUserId)
                             .header("X-Role", "USER")
-                            .header("X-Company_Id", "0")
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound())
                     .andExpect(content().string("User with id " + userId + " is deleted."));
@@ -109,7 +102,7 @@ class UserControllerTest {
         void failAccessDeniedNoHeaders() throws Exception {
             mockMvc.perform(get("/user/{userId}", userId)
                             .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isBadRequest());
 
         }
     }
@@ -123,16 +116,16 @@ class UserControllerTest {
             // given
             UpdateMyInfoRequest request = new UpdateMyInfoRequest("abcd");
 
-            MyInfoResponse mockResponse = new MyInfoResponse(userId, "abcd", "test@test.com", 0L);
+            MyInfoResponse mockResponse = new MyInfoResponse(userId, "abcd", "test@test.com",false);
 
             // 서비스 메서드가 호출되면 mockResponse를 반환하도록 설정
-            when(userService.updateMyInfo(eq(userId), any(),any(UpdateMyInfoRequest.class))).thenReturn(mockResponse);
+            when(userService.updateMyInfo(eq(userId), eq(loginUserId), eq("USER"), any(UpdateMyInfoRequest.class)))
+                    .thenReturn(mockResponse);
 
             // when
             mockMvc.perform(put("/user/{userId}", userId)
-                            .header("X-User-Id", userId.toString())
+                            .header("X-User-Id", loginUserId)
                             .header("X-Role", "USER")
-                            .header("X-Company_Id", "0")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     // then
@@ -140,11 +133,10 @@ class UserControllerTest {
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andExpect(jsonPath("$.userId").value(userId))
                     .andExpect(jsonPath("$.userName").value("abcd"))
-                    .andExpect(jsonPath("$.email").value("test@test.com"))
-                    .andExpect(jsonPath("$.companyStatus").value(0L));
+                    .andExpect(jsonPath("$.email").value("test@test.com"));
 
             // 서비스 메서드가 정확히 호출되었는지 검증
-        Mockito.verify(userService).updateMyInfo(eq(userId), any(),any(UpdateMyInfoRequest.class));
+            verify(userService).updateMyInfo(eq(userId), eq(loginUserId), eq("USER"), any(UpdateMyInfoRequest.class));
         }
     }
     @Nested
@@ -155,7 +147,8 @@ class UserControllerTest {
         void successDeleteUser() throws Exception {
             // given
             DeleteUserResponse mockResponse = DeleteUserResponse.from("삭제완료");
-            when(userService.deleteUser(eq(userId), any())).thenReturn(mockResponse);
+            when(userService.deleteUser(eq(userId), eq(loginUserId), eq("USER")))
+                    .thenReturn(mockResponse);
             mockMvc.perform(delete("/user/{userId}", userId)
                             .header("X-User-Id", userId.toString())
                             .header("X-Role", "USER")
@@ -166,7 +159,7 @@ class UserControllerTest {
                     .andExpect(jsonPath("$.delete").value("삭제완료"));
 
             // 서비스 메서드가 정확히 호출되었는지 검증
-            Mockito.verify(userService).deleteUser(eq(userId), any());
+            verify(userService).deleteUser(eq(userId), any(),any());
         }
     }
 }

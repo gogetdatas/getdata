@@ -30,10 +30,8 @@ public class User extends BaseEntity{
     @Column(name = "usertype")
     @Enumerated(EnumType.STRING)
     private UserTypeEnum userType;
-
-    @Column(name = "company_status")
-    private Long companyStatus;
-
+    @Column(name = "approve")
+    private boolean approve;
     /**
      * 생성자 - 약속된 형태로만 생성가능하도록 합니다.
      */
@@ -43,7 +41,7 @@ public class User extends BaseEntity{
                 .email(email)
                 .password(password)
                 .userType(usertype)
-                .companyStatus(0L)
+                .approve(false)
                 .build();
     }
     /**
@@ -56,4 +54,11 @@ public class User extends BaseEntity{
     public void delete(){
         super.Delete();
     }
+    public void approve(){
+        this.approve = true;
+    }
+    public void approveCancel(){
+        this.approve = false;
+    }
+
 }

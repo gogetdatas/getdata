@@ -53,13 +53,12 @@ public class AuthService {
         if(!passwordEncoder.matches(signInRequest.getPassword(),user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 다름");
         }
-        return createToken(user.getUserId(),user.getUserType(),user.getCompanyStatus());
+        return createToken(user.getUserId(),user.getUserType());
     }
-    public AuthResponse createToken(Long userId, UserTypeEnum role,Long companyStatus) {
+    public AuthResponse createToken(Long userId, UserTypeEnum role) {
         return AuthResponse.of(BEARER_PREFIX + Jwts.builder()
                 .claim("user_id", userId)
                 .claim("role",role)
-                .claim("company_id",companyStatus)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + accessExpiration))
                 .signWith(secretKey, SignatureAlgorithm.HS512)
