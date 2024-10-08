@@ -6,7 +6,6 @@ import com.gogetdata.user.domain.entity.User;
 import com.gogetdata.user.domain.entity.UserTypeEnum;
 import com.gogetdata.user.domain.repository.UserRepository;
 import com.gogetdata.user.domain.service.UserServiceImpl;
-import com.gogetdata.user.infrastructure.filter.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -15,8 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
@@ -40,12 +37,14 @@ class UserServiceTest {
 
     private Long userId;
     private User user;
+    private Long loginUserId;
 
     @BeforeEach
     void setUp() {
         this.userId = 1L;
         this.user = User.create("abc", "test@test", "123", UserTypeEnum.USER);
         ReflectionTestUtils.setField(user, "userId", userId);
+        this.loginUserId = 1L;
     }
 
     @Nested
@@ -55,11 +54,9 @@ class UserServiceTest {
         @Test
         void successAuthAdmin() {
             // given
-            CustomUserDetails adminUserDetails = new CustomUserDetails(2L,  Collections.singleton(new SimpleGrantedAuthority("ADMIN")));
             Long targetUserId = 1L;
-
             // when
-            boolean result = userService.checkAuth(targetUserId, adminUserDetails);
+            boolean result = userService.checkAuth(targetUserId, loginUserId,"ADMIN");
 
             // then
             assertThat(result).isTrue();
@@ -69,10 +66,9 @@ class UserServiceTest {
         @Test
         void successAuthUser() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId,  Collections.singleton(new SimpleGrantedAuthority("USER")));
 
             // when
-            boolean result = userService.checkAuth(userId, customUserDetails);
+            boolean result = userService.checkAuth(userId, loginUserId,"USER");
 
             // then
             assertThat(result).isTrue();
@@ -82,13 +78,11 @@ class UserServiceTest {
         @Test
         void failAuthUser() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(2L,  Collections.singleton(new SimpleGrantedAuthority("USER")));
-
             // when
-            Throwable throwable = catchThrowable(() -> userService.checkAuth(userId, customUserDetails));
+            Throwable throwable = catchThrowable(() -> userService.checkAuth(userId, 2L,"USER"));
 
             // then
-            assertThat(throwable).isInstanceOf(AccessDeniedException.class);
+            assertThat(throwable).isInstanceOf(IllegalAccessError.class);
         }
     }
 
@@ -131,10 +125,9 @@ class UserServiceTest {
             // given
             user.delete();  // 유저를 삭제된 상태로 설정
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId,  Collections.singleton(new SimpleGrantedAuthority("USER")));
 
             // when
-            Throwable throwable = catchThrowable(() -> userService.readMyInfo(userId, customUserDetails));
+            Throwable throwable = catchThrowable(() -> userService.readMyInfo(userId, loginUserId,"USER"));
 
             // then
             assertThat(throwable).isInstanceOf(NoSuchElementException.class)
@@ -149,11 +142,10 @@ class UserServiceTest {
         @Test
         void successReadMyInfo() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId,  Collections.singleton(new SimpleGrantedAuthority("USER")));
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // when
-            MyInfoResponse result = userService.readMyInfo(userId, customUserDetails);
+            MyInfoResponse result = userService.readMyInfo(userId, loginUserId,"USER");
 
             // then
             assertThat(result).isNotNull();
@@ -170,12 +162,11 @@ class UserServiceTest {
         @Test
         void successUpdate() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId,  Collections.singleton(new SimpleGrantedAuthority("USER")));
             UpdateMyInfoRequest updateMyInfo = new UpdateMyInfoRequest("abcd");
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // when
-            MyInfoResponse result = userService.updateMyInfo(userId, customUserDetails, updateMyInfo);
+            MyInfoResponse result = userService.updateMyInfo(userId, loginUserId,"USER", updateMyInfo);
 
             // then
             assertThat(result.userName()).isEqualTo("abcd");
@@ -189,11 +180,10 @@ class UserServiceTest {
         @Test
         void successDelete() {
             // given
-            CustomUserDetails customUserDetails = new CustomUserDetails(userId, Collections.singleton(new SimpleGrantedAuthority("USER")));
             given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
             // when
-            DeleteUserResponse result = userService.deleteUser(userId, customUserDetails);
+            DeleteUserResponse result = userService.deleteUser(userId, loginUserId,"USER");
             // then
             assertThat(result.getDelete()).isEqualTo("회원탈퇴");
 

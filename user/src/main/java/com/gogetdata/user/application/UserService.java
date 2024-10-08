@@ -1,17 +1,16 @@
 package com.gogetdata.user.application;
 
 import com.gogetdata.user.application.dto.*;
-import com.gogetdata.user.infrastructure.filter.CustomUserDetails;
 
 import java.util.List;
 
 public interface UserService {
 
-    MyInfoResponse readMyInfo(Long userId, CustomUserDetails userDetails);
+    MyInfoResponse readMyInfo(Long userId, Long loginUserId,String role);
 
-    MyInfoResponse updateMyInfo(Long userId, CustomUserDetails userDetails, UpdateMyInfoRequest updateMyInfoRequest);
+    MyInfoResponse updateMyInfo(Long userId, Long loginUserId,String role, UpdateMyInfoRequest updateMyInfoRequest);
 
-    DeleteUserResponse deleteUser(Long userId, CustomUserDetails customUserDetails);
+    DeleteUserResponse deleteUser(Long userId, Long loginUserId,String role);
 
     List<RegistrationResults> registrationUsers(List<UserRegistrationDto> userRegistrationDto);
     Boolean checkUser(Long userId);

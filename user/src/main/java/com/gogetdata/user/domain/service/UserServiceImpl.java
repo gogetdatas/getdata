@@ -4,9 +4,7 @@ import com.gogetdata.user.application.UserService;
 import com.gogetdata.user.application.dto.*;
 import com.gogetdata.user.domain.entity.User;
 import com.gogetdata.user.domain.repository.UserRepository;
-import com.gogetdata.user.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,16 +18,16 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public MyInfoResponse readMyInfo(Long userId, CustomUserDetails userDetails) {
-        checkAuth(userId, userDetails);
+    public MyInfoResponse readMyInfo(Long userId, Long loginUserId,String role) {
+        checkAuth(userId, loginUserId,role);
         User user = getUserIfNotDeleted(userId);
         return MyInfoResponse.from(user);
     }
 
     @Transactional
     @Override
-    public MyInfoResponse updateMyInfo(Long userId, CustomUserDetails userDetails, UpdateMyInfoRequest updateMyInfoRequest) {
-        checkAuth(userId, userDetails);
+    public MyInfoResponse updateMyInfo(Long userId, Long loginUserId,String role, UpdateMyInfoRequest updateMyInfoRequest) {
+        checkAuth(userId, loginUserId,role);
         User user = getUserIfNotDeleted(userId);
         user.update(updateMyInfoRequest.getUserName());
         userRepository.save(user);
@@ -38,8 +36,8 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public DeleteUserResponse deleteUser(Long userId, CustomUserDetails userDetails) {
-        checkAuth(userId, userDetails);
+    public DeleteUserResponse deleteUser(Long userId, Long loginUserId,String role) {
+        checkAuth(userId, loginUserId,role);
         User user = getUserIfNotDeleted(userId);
         user.delete();
         userRepository.save(user);
@@ -100,16 +98,15 @@ public class UserServiceImpl implements UserService {
         return getUserIfNotDeleted(userId);
     }
 
-    public boolean checkAuth(Long userId, CustomUserDetails userDetails) {
-        boolean isAdmin = userDetails.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ADMIN"));
+    public boolean checkAuth(Long userId, Long loginUserId, String role) {
+        boolean isAdmin = role.equals("ADMIN");
         if (isAdmin) {
             return true;
         }
-        if (userDetails.getUserId().equals(userId)) {
+        if (loginUserId.equals(userId)) {
             return true;
         } else {
-            throw new AccessDeniedException("User ID " + userId + " does not have access rights.");
+            throw new IllegalAccessError("User ID " + userId + " does not have access rights.");
         }
     }
 

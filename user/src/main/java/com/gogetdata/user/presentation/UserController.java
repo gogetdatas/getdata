@@ -2,11 +2,9 @@ package com.gogetdata.user.presentation;
 
 import com.gogetdata.user.application.UserService;
 import com.gogetdata.user.application.dto.*;
-import com.gogetdata.user.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,21 +17,27 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/{userId}")
-    public ResponseEntity<MyInfoResponse> getMyInfo(@PathVariable Long userId, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        MyInfoResponse response = userService.readMyInfo(userId, userDetails);
+    public ResponseEntity<MyInfoResponse> getMyInfo(@PathVariable Long userId,
+                                                    @RequestHeader(value = "X-User-Id") Long loginUserId,
+                                                    @RequestHeader(value = "X-Role") String role) {
+        MyInfoResponse response = userService.readMyInfo(userId, loginUserId,role);
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{userId}")
-    public ResponseEntity<MyInfoResponse> updateMyInfo(@PathVariable Long userId, @AuthenticationPrincipal CustomUserDetails userDetails,
+    public ResponseEntity<MyInfoResponse> updateMyInfo(@PathVariable Long userId,
+                                                       @RequestHeader(value = "X-User-Id") Long loginUserId,
+                                                       @RequestHeader(value = "X-Role") String role,
                                                        @RequestBody UpdateMyInfoRequest updateRequest) {
-        MyInfoResponse response = userService.updateMyInfo(userId, userDetails, updateRequest);
+        MyInfoResponse response = userService.updateMyInfo(userId, loginUserId,role, updateRequest);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{userId}")
-    public ResponseEntity<DeleteUserResponse> deleteUser(@PathVariable Long userId, @AuthenticationPrincipal CustomUserDetails userDetails) {
-        DeleteUserResponse response = userService.deleteUser(userId, userDetails);
+    public ResponseEntity<DeleteUserResponse> deleteUser(@PathVariable Long userId,
+                                                         @RequestHeader(value = "X-User-Id") Long loginUserId,
+                                                         @RequestHeader(value = "X-Role") String role) {
+        DeleteUserResponse response = userService.deleteUser(userId, loginUserId,role);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
     @GetMapping("/company/registers")
