@@ -4,7 +4,9 @@ import com.gogetdata.auth.application.dto.AuthResponse;
 import com.gogetdata.auth.application.dto.signInRequest;
 import com.gogetdata.auth.application.dto.signUpRequest;
 import com.gogetdata.auth.domain.entity.User;
+import com.gogetdata.auth.domain.entity.UserInfo;
 import com.gogetdata.auth.domain.entity.UserTypeEnum;
+import com.gogetdata.auth.domain.repository.UserInfoRepository;
 import com.gogetdata.auth.domain.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -13,6 +15,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -24,21 +27,26 @@ public class AuthService {
     private Long accessExpiration;
     private final SecretKey secretKey;
     private final UserRepository userRepository;
+    private final UserInfoRepository userInfoRepository;
     private final PasswordEncoder passwordEncoder;
     public static final String BEARER_PREFIX = "Bearer ";
 
     public AuthService(UserRepository userRepository,
-                       @Value("${service.jwt.secret-key}") String secretKey , PasswordEncoder passwordEncoder) {
+                       @Value("${service.jwt.secret-key}") String secretKey , PasswordEncoder passwordEncoder,UserInfoRepository userInfoRepository) {
         this.userRepository = userRepository;
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(secretKey));
         this.passwordEncoder = passwordEncoder;
+        this.userInfoRepository = userInfoRepository;
     }
-    public void signUp(signUpRequest signUpRequest) { // 여기서 컴퍼니 네임 있는지 확인하고 없으면 그냥 저장시키고 , 있으면 요청을 보냄
+    @Transactional
+    public void signUp(signUpRequest signUpRequest) {
         existEmail(signUpRequest.getEmail());
-        userRepository.save(User.create(signUpRequest.getUserName(),
+        User user = User.create(signUpRequest.getUserName(),
                 signUpRequest.getEmail(),
                 passwordEncoder.encode(signUpRequest.getPassword()),
-                UserTypeEnum.USER));
+                UserTypeEnum.USER);
+        userRepository.save(user);
+        userInfoRepository.save(UserInfo.create(user.getUserId(), String.valueOf(user.getUserType())));
     }
     private void existEmail(String email){
         Optional<User> userEmail = userRepository.findByemail(email);
@@ -53,12 +61,15 @@ public class AuthService {
         if(!passwordEncoder.matches(signInRequest.getPassword(),user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 다름");
         }
-        return createToken(user.getUserId(),user.getUserType());
+        UserInfo userInfo = userInfoRepository.findByUserId(user.getUserId());
+        return createToken(userInfo.getUserId(),userInfo.getUserType(),userInfo.getCompanyId(),userInfo.getCompanyType());
     }
-    public AuthResponse createToken(Long userId, UserTypeEnum role) {
+    public AuthResponse createToken(Long userId, String role , Long companyId,String companyRole) {
         return AuthResponse.of(BEARER_PREFIX + Jwts.builder()
                 .claim("user_id", userId)
-                .claim("role",role)
+                .claim("user_role",role)
+                .claim("company_id",companyId)
+                .claim("company_role",companyRole)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + accessExpiration))
                 .signWith(secretKey, SignatureAlgorithm.HS512)
