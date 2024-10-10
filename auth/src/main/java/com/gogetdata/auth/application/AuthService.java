@@ -4,9 +4,7 @@ import com.gogetdata.auth.application.dto.AuthResponse;
 import com.gogetdata.auth.application.dto.signInRequest;
 import com.gogetdata.auth.application.dto.signUpRequest;
 import com.gogetdata.auth.domain.entity.User;
-import com.gogetdata.auth.domain.entity.UserInfo;
 import com.gogetdata.auth.domain.entity.UserTypeEnum;
-import com.gogetdata.auth.domain.repository.UserInfoRepository;
 import com.gogetdata.auth.domain.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -27,16 +25,14 @@ public class AuthService {
     private Long accessExpiration;
     private final SecretKey secretKey;
     private final UserRepository userRepository;
-    private final UserInfoRepository userInfoRepository;
     private final PasswordEncoder passwordEncoder;
     public static final String BEARER_PREFIX = "Bearer ";
 
     public AuthService(UserRepository userRepository,
-                       @Value("${service.jwt.secret-key}") String secretKey , PasswordEncoder passwordEncoder,UserInfoRepository userInfoRepository) {
+                       @Value("${service.jwt.secret-key}") String secretKey , PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(secretKey));
         this.passwordEncoder = passwordEncoder;
-        this.userInfoRepository = userInfoRepository;
     }
     @Transactional
     public void signUp(signUpRequest signUpRequest) {
@@ -46,7 +42,6 @@ public class AuthService {
                 passwordEncoder.encode(signUpRequest.getPassword()),
                 UserTypeEnum.USER);
         userRepository.save(user);
-        userInfoRepository.save(UserInfo.create(user.getUserId(), String.valueOf(user.getUserType())));
     }
     private void existEmail(String email){
         Optional<User> userEmail = userRepository.findByemail(email);
@@ -61,10 +56,9 @@ public class AuthService {
         if(!passwordEncoder.matches(signInRequest.getPassword(),user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 다름");
         }
-        UserInfo userInfo = userInfoRepository.findByUserId(user.getUserId());
-        return createToken(userInfo.getUserId(),userInfo.getUserType(),userInfo.getCompanyId(),userInfo.getCompanyType());
+        return createToken(user.getUserId(),user.getUserType(),user.getCompanyId(),user.getCompanyType());
     }
-    public AuthResponse createToken(Long userId, String role , Long companyId,String companyRole) {
+    public AuthResponse createToken(Long userId, UserTypeEnum role , Long companyId, String companyRole) {
         return AuthResponse.of(BEARER_PREFIX + Jwts.builder()
                 .claim("user_id", userId)
                 .claim("user_role",role)

@@ -29,9 +29,13 @@ public class User extends BaseEntity{
 
     @Column(name = "usertype")
     @Enumerated(EnumType.STRING)
-
     private UserTypeEnum userType;
 
+    @Column(name = "company_id")
+    private Long companyId;
+
+    @Column(name = "companytype")
+    private String companyType;
     /**
      * 생성자 - 약속된 형태로만 생성가능하도록 합니다.
      */
