@@ -46,15 +46,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public List<RegistrationResults> registrationUsers(List<UserRegistrationDto> userRegistrationDto) {
+    public List<RegistrationResults> registrationUsers(UserRegistrationDto userRegistrationDto) {
         List<RegistrationResults> results = new ArrayList<>();
-        for (UserRegistrationDto registrationDto : userRegistrationDto) {
+        for (UserRegistration registrationDto : userRegistrationDto.getUserRegistrationList()) {
             try {
                 User user = verify(registrationDto.getUserId());
-                if (user.isApprove()) {
+                if (user.getCompanyId() != null) {
                     results.add(RegistrationResults.from(registrationDto.getCompanyUserId(), registrationDto.getUserId(), false, registrationDto.getType(), user.getUserName()));
                 } else {
-                    user.approve();
+                    user.registration(userRegistrationDto.getCompanyId(), registrationDto.getType());
                     userRepository.save(user);
                     results.add(RegistrationResults.from(registrationDto.getCompanyUserId(), registrationDto.getUserId(), true, registrationDto.getType(), user.getUserName()));
                 }
@@ -65,24 +65,11 @@ public class UserServiceImpl implements UserService {
         }
         return results;
     }
-
-    @Override
-    public RegistrationResult registrationUser(Long userId) {
-        User user = verify(userId);
-        if (user.isApprove()) {
-            return RegistrationResult.from(user, false);
-        } else {
-            user.approve();
-            userRepository.save(user);
-            return RegistrationResult.from(user, true);
-        }
-    }
-
     @Override
     @Transactional
     public Boolean deleteCompanyUser(Long userId) {
         User user = verify(userId);
-        user.approveCancel();
+        user.registrationCancel();
         userRepository.save(user);
         return true;
     }
@@ -91,7 +78,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Boolean checkUser(Long userId) {
         User user = verify(userId);
-        return !user.isApprove();
+        return user.getCompanyId() != null;
     }
 
     public User verify(Long userId) {
