@@ -15,95 +15,52 @@ public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryC
 
     @Override
     public boolean isExistAdminUser(Long companyTeamId, Long userId) {
-        return queryFactory.selectOne()
-                .from(companyUser)
-                .leftJoin(companyTeamUser)
-                .on(companyTeamUser.userId.eq(companyUser.userId)
+        return queryFactory.selectFrom(companyTeam)
+                .where(companyTeamUser.userId.eq(userId)
                         .and(companyTeamUser.companyTeamId.eq(companyTeamId))
                         .and(companyTeamUser.isDeleted.eq(false))
                         .and(companyTeamUser.companyTeamUserStatus.eq(CompanyTeamUserStatus.APPROVED))
                         .and(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.ADMIN))
                 )
-                .where(companyUser.userId.eq(userId)
-                        .and(
-                                companyUser.type.eq(CompanyUserType.ADMIN)
-                                .or(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.ADMIN))
-                                        .or(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.ADMIN))
-                        )
-                )
-                .fetchFirst() != null;
+                .fetchOne() != null;
     }
 
     @Override
-    public boolean isExistAdminOrUser(Long companyTeamId, Long userId) {
-        return queryFactory.selectOne()
-                .from(companyUser)
-                .leftJoin(companyTeamUser)
-                .on(companyTeamUser.userId.eq(companyUser.userId)
+    public boolean isExistUserInTeam(Long companyTeamId, Long userId) {
+        return queryFactory.selectFrom(companyTeam)
+                .where(companyTeamUser.userId.eq(userId)
                         .and(companyTeamUser.companyTeamId.eq(companyTeamId))
                         .and(companyTeamUser.isDeleted.eq(false))
                         .and(companyTeamUser.companyTeamUserStatus.eq(CompanyTeamUserStatus.APPROVED))
-                        .and(companyTeamUser.companyTeamUserType.in(
-                                CompanyTeamUserType.ADMIN,
-                                CompanyTeamUserType.USER))
+                        .or(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.ADMIN))
+                        .or(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.USER))
                 )
-                .where(companyUser.userId.eq(userId)
-                        .and(
-                                companyUser.type.eq(CompanyUserType.ADMIN)
-                                        .or(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.ADMIN))
-                                        .or(companyTeamUser.companyTeamUserType.in(
-                                                CompanyTeamUserType.ADMIN,
-                                                CompanyTeamUserType.USER))
-                        )
-                )
-                .fetchFirst() != null;
+                .fetchOne() != null;
     }
 
     @Override
-    public List<CompanyTeamUser> isExistUsers(Long companyId,Long companyTeamId, List<Long> userIds) {
+    public List<CompanyTeamUser> isExistUsers(Long companyTeamId, List<Long> userIds) {
         return queryFactory.select(companyTeamUser)
                 .from(companyTeamUser)
-                .innerJoin(companyTeamUser).on(companyTeamUser.userId.eq(companyUser.userId))
                 .where(companyTeamUser.companyTeamId.eq(companyTeamId)
-                        .and(companyUser.companyId.eq(companyId))
                         .and(companyTeamUser.userId.in(userIds))
                         .and(companyTeamUser.companyTeamUserStatus.eq(CompanyTeamUserStatus.PENDING))
                         .and(companyTeamUser.isDeleted.eq(false))
-                        .and(companyUser.isDeleted.eq(false))
                 )
                 .fetch();
     }
 
     @Override
-    public CompanyTeamUser isExistUser(Long companyId, Long companyTeamId, Long userId) {
+    public CompanyTeamUser isExistUser(Long companyTeamId, Long userId) {
         return queryFactory.select(companyTeamUser)
                 .from(companyTeamUser)
-                .innerJoin(companyTeamUser).on(companyTeamUser.userId.eq(companyUser.userId))
                 .where(companyTeamUser.companyTeamId.eq(companyTeamId)
-                        .and(companyUser.companyId.eq(companyId))
                         .and(companyTeamUser.companyTeamUserId.eq(userId))
                         .and(companyTeamUser.companyTeamUserStatus.eq(CompanyTeamUserStatus.PENDING))
                         .and(companyTeamUser.isDeleted.eq(false))
-                        .and(companyUser.isDeleted.eq(false))
                 )
                 .fetchOne();
     }
-
-    @Override
-    public CompanyTeamUser isExistUser(Long companyId, Long companyTeamId, Long companyTeamUserId, Long userId) {
-        return queryFactory.select(companyTeamUser)
-                .from(companyTeamUser)
-                .innerJoin(companyTeamUser).on(companyTeamUser.companyTeamUserId.eq(companyUser.userId))
-                .where(companyTeamUser.companyTeamId.eq(companyTeamId)
-                        .and(companyUser.companyId.eq(companyId))
-                        .and(companyTeamUser.companyTeamUserId.eq(userId))
-                        .and(companyTeamUser.companyTeamUserStatus.eq(CompanyTeamUserStatus.APPROVED))
-                        .and(companyTeamUser.isDeleted.eq(false))
-                        .and(companyUser.isDeleted.eq(false))
-                )
-                .fetchOne();
-    }
-
     @Override
     public List<CompanyTeam> getMyTeams(Long userId) {
         return queryFactory.select(companyTeam)
@@ -127,5 +84,17 @@ public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryC
                         .and(companyTeamUser.isDeleted.eq(false))
                 )
                 .fetch();
+    }
+
+    @Override
+    public CompanyTeamUser isApproveUser(Long companyTeamId, Long companyTeamUserId) {
+        return queryFactory.select(companyTeamUser)
+                .from(companyTeamUser)
+                .where(companyTeamUser.companyTeamId.eq(companyTeamId)
+                        .and(companyTeamUser.companyTeamUserId.eq(companyTeamUserId))
+                        .and(companyTeamUser.companyTeamUserStatus.eq(CompanyTeamUserStatus.APPROVED))
+                        .and(companyTeamUser.isDeleted.eq(false))
+                )
+                .fetchOne();
     }
 }

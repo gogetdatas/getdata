@@ -36,14 +36,15 @@ class CompanyTeamUserServiceTest {
     private Long companyTeamId;
     private Long userId;
     private Long loginUserId;
+    private Long loginCompanyId;
 
     @BeforeEach
     void setUp() {
-        this.companyId = 1L;
         userId = 1L;
         this.loginUserId = 1L;
         companyId = 100L;
         companyTeamId = 200L;
+        this.loginCompanyId = 100L;
     }
     @Nested
     @DisplayName("업체팀유저요청")
@@ -55,7 +56,7 @@ class CompanyTeamUserServiceTest {
             CompanyUser loginUser = new CompanyUser(companyId,loginUserId,1L,AffiliationStatus.APPROVED,CompanyUserType.USER,"user1","user1@email.com");
             given(companyUserRepository.isApprovalUser(companyId,loginUserId)).willReturn(loginUser);
             // when
-            MessageResponse result = companyTeamUserService.applyToJoinTeam(loginUserId,"USER",companyId,companyTeamId);
+            MessageResponse result = companyTeamUserService.applyToJoinTeam(loginUserId,companyId,companyTeamId);
             // then
             assertThat(result.getMessage()).isEqualTo("요청완료");
         }
@@ -71,8 +72,6 @@ class CompanyTeamUserServiceTest {
                     new AcceptJoinRequest(10L, "ADMIN"),
                     new AcceptJoinRequest(11L, "USER")
             );
-
-            given(companyTeamUserRepository.isExistAdminUser(companyTeamId, userId)).willReturn(true);
             List<CompanyTeamUser> existingUsers = Arrays.asList(
                     new CompanyTeamUser(10L,companyTeamId,2L,"User2","user2@email.com",
                             CompanyTeamUserStatus.PENDING,CompanyTeamUserType.UNASSIGN),
@@ -80,11 +79,11 @@ class CompanyTeamUserServiceTest {
                             CompanyTeamUserStatus.PENDING,CompanyTeamUserType.UNASSIGN)
                     );
 
-            given(companyTeamUserRepository.isExistUsers(companyId, companyTeamId, Arrays.asList(10L, 11L)))
+            given(companyTeamUserRepository.isExistUsers(companyTeamId, Arrays.asList(10L, 11L)))
                     .willReturn(existingUsers);
 
             // when
-            List<MessageResponse> messages = companyTeamUserService.acceptJoinRequest(loginUserId,"USER", companyId, companyTeamId, acceptJoinRequest);
+            List<MessageResponse> messages = companyTeamUserService.acceptJoinRequest(loginUserId,"USER", companyId, companyTeamId, acceptJoinRequest,loginCompanyId,"ADMIN");
             // then
             assertThat(messages).hasSize(2);
             assertThat(messages).extracting("message").containsExactlyInAnyOrder("User2등록", "User3등록");
@@ -172,14 +171,14 @@ class CompanyTeamUserServiceTest {
         @Test
         void successRejectJoinRequest() {
             //given
-            given(companyTeamUserRepository.isExistAdminUser(companyTeamId, loginUserId)).willReturn(true);
+            given(companyTeamUserRepository.isExistAdminUser(loginUserId, companyTeamId)).willReturn(true);
             CompanyTeamUser companyTeamUser = new CompanyTeamUser(10L, companyTeamId, 10L, "User2", "user2@email.com",
                     CompanyTeamUserStatus.PENDING, CompanyTeamUserType.UNASSIGN);
-            given(companyTeamUserRepository.isExistUser(companyId, companyTeamId, companyTeamUser.getCompanyTeamUserId()))
+            given(companyTeamUserRepository.isExistUser(companyTeamId, companyTeamUser.getCompanyTeamUserId()))
                     .willReturn(companyTeamUser);
 
             //when
-            MessageResponse messages = companyTeamUserService.rejectJoinRequest(loginUserId,"USER", companyId, companyTeamId, 10L);
+            MessageResponse messages = companyTeamUserService.rejectJoinRequest(loginUserId,"USER", companyId, companyTeamId, 10L,loginCompanyId,"USER");
             //then
             assertThat(messages.getMessage()).isEqualTo("거절");
         }
@@ -191,12 +190,11 @@ class CompanyTeamUserServiceTest {
             @Test
             void successDeleteUserFromTeam() {
                 //given
-                given(companyTeamUserRepository.isExistAdminUser(companyTeamId, loginUserId)).willReturn(true);
                 CompanyTeamUser companyTeamUser = new CompanyTeamUser(10L, companyTeamId, 10L, "User2", "user2@email.com",
                         CompanyTeamUserStatus.APPROVED, CompanyTeamUserType.USER);
                 given(companyTeamUserRepository.findById(10L)).willReturn(Optional.of(companyTeamUser));
                 //when
-                MessageResponse messages = companyTeamUserService.deleteUserFromTeam(loginUserId,"USER", companyId, companyTeamId, 10L);
+                MessageResponse messages = companyTeamUserService.deleteUserFromTeam(loginUserId,"USER", companyId, companyTeamId, 10L,loginCompanyId,"ADMIN");
                 //then
                 assertThat(messages.getMessage()).isEqualTo("삭제");
             }
@@ -209,15 +207,14 @@ class CompanyTeamUserServiceTest {
             @Test
             void successUpdateUserPermission() { //
                 //given
-                given(companyTeamUserRepository.isExistAdminUser(companyTeamId, loginUserId)).willReturn(true);
                 CompanyTeamUser companyTeamUser = new CompanyTeamUser(10L, companyTeamId, 10L, "User2", "user2@email.com",
                         CompanyTeamUserStatus.APPROVED, CompanyTeamUserType.USER);
                 UpdateUserPerMissionRequest updateUserPerMissionRequest = new UpdateUserPerMissionRequest(1L,"ADMIN");
-                given(companyTeamUserRepository.isExistUser(companyId, companyTeamId, companyTeamUser.getCompanyTeamUserId()))
+                given(companyTeamUserRepository.isApproveUser(companyTeamId, companyTeamUser.getCompanyTeamUserId()))
                         .willReturn(companyTeamUser);
 
                 //when
-                MessageResponse messages = companyTeamUserService.updateUserPermission(loginUserId,"USER", companyId, companyTeamId, 10L,updateUserPerMissionRequest);
+                MessageResponse messages = companyTeamUserService.updateUserPermission(loginUserId,"USER", companyId, companyTeamId, 10L,updateUserPerMissionRequest,loginCompanyId,"ADMIN");
                 //then
                 assertThat(messages.getMessage()).isEqualTo("변경");
             }
@@ -256,7 +253,7 @@ class CompanyTeamUserServiceTest {
             @Test
             void successGetUsersInTeam() {
                 //given
-                given(companyTeamUserRepository.isExistAdminOrUser(companyTeamId, loginUserId)).willReturn(true);
+                given(companyTeamUserRepository.isExistUserInTeam(companyTeamId, loginUserId)).willReturn(true);
                 List<CompanyTeamUser> companyTeamUsers = List.of(
                         new CompanyTeamUser(1L,companyTeamId,1L,"user1","user1@email.com",CompanyTeamUserStatus.APPROVED,CompanyTeamUserType.USER),
                         new CompanyTeamUser(2L,companyTeamId,2L,"user2","user2@email.com",CompanyTeamUserStatus.APPROVED,CompanyTeamUserType.USER)
