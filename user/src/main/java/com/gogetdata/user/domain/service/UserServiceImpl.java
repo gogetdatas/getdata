@@ -45,16 +45,17 @@ public class UserServiceImpl implements UserService {
 
     }
 
+
     @Override
-    public List<RegistrationResults> registrationUsers(UserRegistrationDto userRegistrationDto) {
+    public List<RegistrationResults> registrationUsers(UserRegistration userRegistration) {
         List<RegistrationResults> results = new ArrayList<>();
-        for (UserRegistration registrationDto : userRegistrationDto.getUserRegistrationList()) {
+        for (UserRegistrationRequest registrationDto : userRegistration.getUserRegistrationRequestList()) {
             try {
                 User user = verify(registrationDto.getUserId());
                 if (user.getCompanyId() != null) {
                     results.add(RegistrationResults.from(registrationDto.getCompanyUserId(), registrationDto.getUserId(), false, registrationDto.getType(), user.getUserName()));
                 } else {
-                    user.registration(userRegistrationDto.getCompanyId(), registrationDto.getType());
+                    user.registration(userRegistration.getCompanyId(), registrationDto.getType());
                     userRepository.save(user);
                     results.add(RegistrationResults.from(registrationDto.getCompanyUserId(), registrationDto.getUserId(), true, registrationDto.getType(), user.getUserName()));
                 }
@@ -74,16 +75,26 @@ public class UserServiceImpl implements UserService {
         return true;
     }
 
+    @Override
+    public RegistrationResult registrationUser(Long userId,Long companyId) {
+        User user = verify(userId);
+        if(user.getCompanyId() == null){
+            user.registration(companyId,"ADMIN");
+            return RegistrationResult.from(user,true);
+        }
+        return RegistrationResult.from(null,false);
+    }
+
 
     @Override
-    public Boolean checkUser(Long userId) {
+    public RegistrationResult checkUser(Long userId) {
         User user = verify(userId);
-        return user.getCompanyId() != null;
+        if(user.getCompanyId() == null){
+            return RegistrationResult.from(user,true);
+        }
+        return RegistrationResult.from(null,false);
     }
 
-    public User verify(Long userId) {
-        return getUserIfNotDeleted(userId);
-    }
 
     public boolean checkAuth(Long userId, Long loginUserId, String role) {
         boolean isAdmin = role.equals("ADMIN");
@@ -97,16 +108,18 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    public User verify(Long userId) {
+        return getUserIfNotDeleted(userId);
+    }
+
     private User getUserIfNotDeleted(Long userId) {
         User user = readUser(userId);
         return validateUserNotDeleted(user);
     }
-
     public User readUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("No user found with id " + userId));
     }
-
     public User validateUserNotDeleted(User user) {
         if (user.isDeleted()) {
             throw new NoSuchElementException("User with id " + user.getUserId() + " is deleted.");

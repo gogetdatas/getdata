@@ -40,17 +40,24 @@ public class UserController {
         DeleteUserResponse response = userService.deleteUser(userId, loginUserId,role);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
-    @GetMapping("/company/registers")
-    public ResponseEntity<List<RegistrationResults>> registerUsers (@RequestBody UserRegistrationDto userRegistrationDto) {
-        List<RegistrationResults> response = userService.registrationUsers(userRegistrationDto);
+    @GetMapping("/companies/registers")
+    public ResponseEntity<List<RegistrationResults>> registerUsers (@RequestBody UserRegistration userRegistration) {
+        List<RegistrationResults> response = userService.registrationUsers(userRegistration);
         return ResponseEntity.ok(response);
     }
-    @GetMapping("/company/verify/{userId}")
-    public ResponseEntity<Boolean> checkUser (@PathVariable Long userId) {
-        Boolean response = userService.checkUser(userId);
+    @GetMapping("/{userId}/companies/register")
+    public ResponseEntity<RegistrationResult> registerUsers (@PathVariable Long userId,
+                                                             @RequestParam Long companyId) {
+        RegistrationResult response = userService.registrationUser(userId,companyId);
         return ResponseEntity.ok(response);
     }
-    @PutMapping("/company/delete/{userId}")
+
+    @GetMapping("/companies/verify/{userId}")
+    public ResponseEntity<RegistrationResult> checkUser (@PathVariable Long userId) {
+        RegistrationResult response = userService.checkUser(userId);
+        return ResponseEntity.ok(response);
+    }
+    @PutMapping("/companies/delete/{userId}")
     public ResponseEntity<Boolean> deleteCompanyUser (@PathVariable Long userId) {
         Boolean response = userService.deleteCompanyUser(userId);
         return ResponseEntity.ok(response);

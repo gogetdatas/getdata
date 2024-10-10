@@ -1,4 +1,4 @@
-package com.gogetdata.user.application.dto;
+package com.gogetdata.company.application.dto.companyuser;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,7 +12,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserRegistrationDto {
+public class UserRegistration {
     private Long companyId;
-    private List<UserRegistration> userRegistrationList = new ArrayList<>();
+    private List<UserRegistrationRequest> userRegistrationList = new ArrayList<>();
 }

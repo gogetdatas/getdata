@@ -65,7 +65,7 @@ class CompanyUserServiceTest {
                     new RegistrationResults(1L, 1L, true, "ADMIN", "User1"),
                     new RegistrationResults(2L, 2L, false, "USER", "User2")
             );
-            given(userService.registerUsers(userRegistrationRequests)).willReturn(registrationResults);
+//            given(userService.registerUsers(userRegistrationRequests)).willReturn(registrationResults);
             List<CompanyUser> waitingUsers = List.of(
                     new CompanyUser(1L, companyId, 1L, AffiliationStatus.PENDING, CompanyUserType.UNASSIGN, "User1", "User1@email.com")
             );
@@ -188,7 +188,7 @@ class CompanyUserServiceTest {
         @Test
         void requestCompanyUser() {
             // given
-            given(userService.checkUser(loginUserId)).willReturn(true);
+//            given(userService.checkUser(loginUserId)).willReturn(true);
             MyInfoResponse myInfo = new MyInfoResponse(loginUserId,"user1","user1@email.com",false);
             given(userService.readUser(loginUserId)).willReturn(myInfo);
 

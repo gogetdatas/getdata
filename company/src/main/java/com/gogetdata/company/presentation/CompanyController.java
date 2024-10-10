@@ -25,24 +25,26 @@ public class CompanyController {
         return ResponseEntity.ok(response);
     }
     @GetMapping("/{companyId}")
-    public ResponseEntity<CompanyResponse> readCompany(@RequestHeader(value = "X-User-Id") Long userId,
-                                                       @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<CompanyResponse> readCompany(@RequestHeader(value = "X-Role") String role,
+                                                       @RequestHeader(value = "X-Company-Id") Long loginCompanyId,
                                                        @PathVariable Long companyId) {
-        CompanyResponse response = companyService.readCompany(userId,role,companyId);
+        CompanyResponse response = companyService.readCompany(role,loginCompanyId,companyId);
         return ResponseEntity.ok(response);
     }
     @PutMapping("/{companyId}")
-    public ResponseEntity<CompanyResponse> updateCompany(@RequestHeader(value = "X-User-Id") Long userId,
-                                                         @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<CompanyResponse> updateCompany(@RequestHeader(value = "X-Role") String role,
+                                                         @RequestHeader(value = "X-Company-Id") Long loginCompanyId,
+                                                         @RequestHeader(value = "X-Company-Role") String loginCompanyRole,
                                                          @PathVariable Long companyId , @RequestBody UpdateCompanyRequest updateCompanyRequest) {
-        CompanyResponse response = companyService.updateCompany(userId,role,companyId,updateCompanyRequest);
+        CompanyResponse response = companyService.updateCompany(role,companyId,updateCompanyRequest,loginCompanyId,loginCompanyRole);
         return ResponseEntity.ok(response);
     }
     @DeleteMapping("/{companyId}")
-    public ResponseEntity<MessageResponse> deleteCompany(@RequestHeader(value = "X-User-Id") Long userId,
-                                                         @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> deleteCompany(@RequestHeader(value = "X-Role") String role,
+                                                         @RequestHeader(value = "X-Company-Id") Long loginCompanyId,
+                                                         @RequestHeader(value = "X-Company-Role") String loginCompanyRole,
                                                          @PathVariable Long companyId) {
-        MessageResponse response = companyService.deleteCompany(userId,role,companyId);
+        MessageResponse response = companyService.deleteCompany(role,companyId,loginCompanyId,loginCompanyRole);
         return ResponseEntity.ok(response);
     }
 }

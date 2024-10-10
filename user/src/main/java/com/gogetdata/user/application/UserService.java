@@ -12,8 +12,10 @@ public interface UserService {
 
     DeleteUserResponse deleteUser(Long userId, Long loginUserId,String role);
 
-    List<RegistrationResults> registrationUsers(UserRegistrationDto userRegistrationDto);
-    Boolean checkUser(Long userId);
+    List<RegistrationResults> registrationUsers(UserRegistration userRegistration);
+    RegistrationResult checkUser(Long userId);
 
     Boolean deleteCompanyUser(Long userId);
+
+    RegistrationResult registrationUser(Long userId,Long companyId);
 }

@@ -5,6 +5,7 @@ import com.gogetdata.company.application.UserService;
 import com.gogetdata.company.application.dto.MessageResponse;
 import com.gogetdata.company.application.dto.companyuser.*;
 import com.gogetdata.company.application.dto.feignclient.MyInfoResponse;
+import com.gogetdata.company.application.dto.feignclient.RegistrationResult;
 import com.gogetdata.company.application.dto.feignclient.RegistrationResults;
 import com.gogetdata.company.domain.entity.AffiliationStatus;
 import com.gogetdata.company.domain.entity.CompanyUser;
@@ -38,8 +39,8 @@ public class CompanyUserServiceImpl implements CompanyUserService {
                                                                        List<UserRegistrationRequest> userRegistrationRequests,
                                                                        Long companyId) {
         authorizeAdminOrCompanyAdmin(loginUserId,role,companyId);
-
-        List<RegistrationResults> results = userService.registerUsers(userRegistrationRequests);
+        UserRegistration userRegistration = new UserRegistration(companyId,userRegistrationRequests);
+        List<RegistrationResults> results = userService.registerUsers(userRegistration);
         Map<Long, RegistrationResults> approvedResultsMap = results.stream()
                 .filter(RegistrationResults::isSuccess)
                 .collect(Collectors.toMap(RegistrationResults::getCompanyUserId, Function.identity()));
@@ -149,14 +150,14 @@ public class CompanyUserServiceImpl implements CompanyUserService {
      */
     @Override
     public MessageResponse requestCompanyUser(Long loginUserId,String role, Long companyId) {
-        if (userService.checkUser(loginUserId)) {
-            MyInfoResponse myInfo = userService.readUser(loginUserId);
+        RegistrationResult result = userService.checkUser(loginUserId);
+        if (result.isSuccess()) {
             companyUserRepository.save(CompanyUser.create(companyId,
                     loginUserId,
                     AffiliationStatus.PENDING,
                     CompanyUserType.UNASSIGN,
-                    myInfo.getUserName(),
-                    myInfo.getEmail()));
+                    result.getUserName(),
+                    result.getEmail()));
             return MessageResponse.from("요청완료");
         }
         throw new IllegalArgumentException("이미 회사에 소속되어 있음");
