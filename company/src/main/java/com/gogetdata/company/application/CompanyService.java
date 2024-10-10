@@ -8,9 +8,9 @@ import com.gogetdata.company.application.dto.company.UpdateCompanyRequest;
 public interface CompanyService {
     CompanyResponse createCompany(Long userId,String role, CreateCompanyRequest createCompanyRequest);
 
-    CompanyResponse readCompany(Long userId,String role, Long companyId);
+    CompanyResponse readCompany(String role,Long loginCompanyId, Long companyId);
 
-    CompanyResponse updateCompany(Long userId,String role, Long companyId, UpdateCompanyRequest updateCompanyRequest);
+    CompanyResponse updateCompany(String role, Long companyId, UpdateCompanyRequest updateCompanyRequest,Long loginCompanyId, String loginCompanyType);
 
-    MessageResponse deleteCompany(Long userId,String role ,Long companyId);
+    MessageResponse deleteCompany(String role, Long companyId,Long loginCompanyId, String loginCompanyType);
 }

@@ -19,36 +19,6 @@ public class CompanyUserRepositoryImpl implements CompanyUserRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public Company getCompanyUserAdmin(Long userId, Long companyId) {
-        return queryFactory.selectFrom(company)
-                .join(companyUser).on(
-                        company.companyId.eq(companyUser.companyId)
-                                .and(company.isDeleted.eq(false))
-                                .and(companyUser.status.eq(AffiliationStatus.APPROVED))
-                                .and(companyUser.type.eq(CompanyUserType.ADMIN))
-                )
-                .where(
-                        company.companyId.eq(companyId)
-                                .and(companyUser.userId.eq(userId))
-                )
-                .fetchOne();
-    }
-    @Override
-    public Company getCompanyUser(Long userId, Long companyId) {
-        return queryFactory.selectFrom(company)
-                .join(companyUser)
-                .on(
-                        company.companyId.eq(companyUser.companyId),
-                        company.isDeleted.eq(false)
-                        .and(companyUser.status.eq(AffiliationStatus.APPROVED))
-                )
-                .where(
-                        company.companyId.eq(companyId)
-                                .and(companyUser.userId.eq(userId))
-                )
-                .fetchOne();
-    }
-    @Override
     public List<CompanyUser> selectWaitingForApprovalUsers(Collection<Long> companyUserId, Long companyId) {
         return queryFactory
                 .selectFrom(companyUser)

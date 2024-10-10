@@ -36,10 +36,12 @@ class CompanyTeamServiceTest {
     private CompanyTeamUserRepository companyTeamUserRepository;
     private Long companyId;
     private Long loginUserId;
+    private Long loginCompanyId;
     @BeforeEach
     void setUp() {
         this.companyId = 1L;
         this.loginUserId = 1L;
+        this.loginCompanyId = 1L;
     }
     @Nested
     @DisplayName("업체팀생성 요청")
@@ -49,11 +51,9 @@ class CompanyTeamServiceTest {
         void successRequestCompanyTeam() {
             // given
             RequestCompanyTeamRequest requestCompanyTeam = new RequestCompanyTeamRequest("team1");
-            CompanyUser companyUser =  new CompanyUser(1L, companyId, 1L, AffiliationStatus.APPROVED, CompanyUserType.USER, "User1", "User1@email.com");
-            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(companyUser);
 
             // when
-            MessageResponse result = companyTeamService.requestCompanyTeam(loginUserId,"USER",1L,requestCompanyTeam);
+            MessageResponse result = companyTeamService.requestCompanyTeam(loginUserId,"USER",1L,requestCompanyTeam,loginCompanyId);
             // then
             assertThat(result.getMessage()).isEqualTo("요청완료");
         }
@@ -65,8 +65,6 @@ class CompanyTeamServiceTest {
         @Test
         void successRequestReadCompanyTeam() {
             // given
-            CompanyUser companyUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(companyUser);
             List<CompanyTeam> companyTeams = List.of(
                     new CompanyTeam(1L,companyId,"team1", CompanyTeamStatus.PENDING),
                     new CompanyTeam(2L,companyId,"team2", CompanyTeamStatus.PENDING),
@@ -80,7 +78,7 @@ class CompanyTeamServiceTest {
                     new RequestCompanyTeamResponse(3L,"team3", CompanyTeamStatus.PENDING)
                     );
             // when
-            List<RequestCompanyTeamResponse> results = companyTeamService.requestReadCompanyTeam(loginUserId,"USER",companyId);
+            List<RequestCompanyTeamResponse> results = companyTeamService.requestReadCompanyTeam("USER",companyId,loginCompanyId,"ADMIN");
             // then
             assertThat(results).containsExactlyElementsOf(companyTeamResponses);
         }
@@ -92,16 +90,13 @@ class CompanyTeamServiceTest {
         @Test
         void successApproveRequestCompanyTeam() {
             // given
-            CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-
-            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
             CompanyTeam companyTeam = new CompanyTeam(3L,companyId,"team3", CompanyTeamStatus.PENDING);
             given(companyTeamRepository.readRequestCompanyTeam(3L)).willReturn(companyTeam);
             CompanyUser companyUser =  new CompanyUser(2L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.USER,
                     "user1","user1@email.com");
             given(companyUserRepository.isApprovalUser(companyId,companyTeam.getCreatedBy())).willReturn(companyUser);
             // when
-            MessageResponse result = companyTeamService.approveRequestCompanyTeam(loginUserId,"USER",3L,companyId);
+            MessageResponse result = companyTeamService.approveRequestCompanyTeam("USER",3L,companyId,loginCompanyId,"ADMIN");
             // then
             assertThat(result.getMessage()).isEqualTo("승인");
         }
@@ -113,13 +108,10 @@ class CompanyTeamServiceTest {
         @Test
         void successRejectRequestCompanyTeam() {
             // given
-            CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-
-            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
             CompanyTeam companyTeam = new CompanyTeam(3L,companyId,"team3", CompanyTeamStatus.PENDING);
             given(companyTeamRepository.readRequestCompanyTeam(3L)).willReturn(companyTeam);
             // when
-            MessageResponse result = companyTeamService.rejectRequestCompanyTeam(loginUserId,"USER",3L,companyId);
+            MessageResponse result = companyTeamService.rejectRequestCompanyTeam("USER",3L,companyId,loginCompanyId,"ADMIN");
             // then
             assertThat(result.getMessage()).isEqualTo("거절");
         }
@@ -132,13 +124,10 @@ class CompanyTeamServiceTest {
         @Test
         void successDeleteCompanyTeam() {
             // given
-            CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-
-            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
             CompanyTeam companyTeam = new CompanyTeam(3L,companyId,"team3", CompanyTeamStatus.PENDING);
             given(companyTeamRepository.findById(companyTeam.getCompanyTeamId())).willReturn(Optional.of(companyTeam));
             // when
-            MessageResponse result = companyTeamService.deleteCompanyTeam(loginUserId,"USER",3L,companyId);
+            MessageResponse result = companyTeamService.deleteCompanyTeam("USER",3L,companyId,loginCompanyId,"ADMIN");
             // then
             assertThat(result.getMessage()).isEqualTo("삭제완료");
         }
@@ -150,13 +139,11 @@ class CompanyTeamServiceTest {
         @Test
         void successUpdateCompanyTeamName() {
             // given
-            CompanyUser loginUser = new CompanyUser(1L,companyId,1L,AffiliationStatus.APPROVED,CompanyUserType.ADMIN,"user1","user1@email.com");
-            given(companyUserRepository.isApprovalUser(loginUserId, companyId)).willReturn(loginUser);
             CompanyTeam companyTeam = new CompanyTeam(3L,companyId,"team3", CompanyTeamStatus.PENDING);
             given(companyTeamRepository.findById(companyTeam.getCompanyTeamId())).willReturn(Optional.of(companyTeam));
             UpdateTeamRequest updateTeamRequest = new UpdateTeamRequest("updateTeam1");
             // when
-            MessageResponse result = companyTeamService.updateCompanyTeamName(loginUserId,"USER",3L,companyId,updateTeamRequest);
+            MessageResponse result = companyTeamService.updateCompanyTeamName("USER",3L,companyId,updateTeamRequest,loginCompanyId,"ADMIN");
             // then
             assertThat(result.getMessage()).isEqualTo("이름변경 변경이름 :" + companyTeam.getCompanyTeamName());
         }
