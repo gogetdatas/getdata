@@ -10,6 +10,7 @@ import com.gogetdata.company.domain.entity.AffiliationStatus;
 import com.gogetdata.company.domain.entity.CompanyUser;
 import com.gogetdata.company.domain.entity.CompanyUserType;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
+import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,17 +28,17 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     /**
      * 사용자를 회사에 등록합니다.
      *
-     * @param loginUserId,role      현재 사용자 정보
+     * @param customUserDetails      현재 사용자 정보
      * @param userRegistrationRequests 사용자 등록 요청 목록
      * @param companyId                대상 회사 ID
      * @return 등록된 사용자 응답 목록
      */
     @Override
     @Transactional
-    public List<CompanyUserRegistrationResponse> registerUserToCompany(Long loginUserId,String role,
+    public List<CompanyUserRegistrationResponse> registerUserToCompany(CustomUserDetails customUserDetails,
                                                                        List<UserRegistrationRequest> userRegistrationRequests,
                                                                        Long companyId) {
-        authorizeAdminOrCompanyAdmin(loginUserId,role,companyId);
+        authorizeAdminOrCompanyAdmin(customUserDetails,companyId);
 
         List<RegistrationResults> results = userService.registerUsers(userRegistrationRequests);
         Map<Long, RegistrationResults> approvedResultsMap = results.stream()
@@ -66,15 +67,15 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     /**
      * 회사 사용자 삭제 메서드.
      *
-     * @param loginUserId,role 현재 사용자 정보
+     * @param customUserDetails 현재 사용자 정보
      * @param companyUserId     삭제하려는 회사 사용자 ID
      * @param companyId         대상 회사 ID
      * @return 삭제 성공 메시지
      */
     @Override
     @Transactional
-    public MessageResponse deleteCompanyUser(Long loginUserId,String role, Long companyUserId, Long companyId) {
-        authorizeAdminOrCompanyAdminOrSelf(loginUserId,role,companyUserId,companyId);
+    public MessageResponse deleteCompanyUser(CustomUserDetails customUserDetails, Long companyUserId, Long companyId) {
+        authorizeAdminOrCompanyAdminOrSelf(customUserDetails,companyUserId,companyId);
 
         CompanyUser companyUser = validateCompanyUserNotDeleted(isExistCompanyUser(companyUserId));
         if (userService.deleteCompanyUser(companyUser.getUserId())) {
@@ -88,7 +89,7 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     /**
      * 회사 사용자 타입을 업데이트합니다.
      *
-     * @param loginUserId,role        현재 사용자 정보
+     * @param customUserDetails        현재 사용자 정보
      * @param companyUserId            업데이트할 회사 사용자 ID
      * @param companyId                대상 회사 ID
      * @param updateCompanyTypeRequest 타입 업데이트 요청
@@ -96,8 +97,8 @@ public class CompanyUserServiceImpl implements CompanyUserService {
      */
     @Override
     @Transactional
-    public MessageResponse updateCompanyTypeUser(Long loginUserId,String role, Long companyUserId, Long companyId, UpdateCompanyUserTypeRequest updateCompanyTypeRequest) {
-        authorizeAdminOrCompanyAdmin(loginUserId,role,companyId);
+    public MessageResponse updateCompanyTypeUser(CustomUserDetails customUserDetails, Long companyUserId, Long companyId, UpdateCompanyUserTypeRequest updateCompanyTypeRequest) {
+        authorizeAdminOrCompanyAdmin(customUserDetails,companyId);
 
         CompanyUser companyUser = validateCompanyUserNotDeleted(isExistCompanyUser(companyUserId));
         companyUser.updateTypeUserCompany(CompanyUserType.valueOf(updateCompanyTypeRequest.getType()));
@@ -108,13 +109,13 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     /**
      * 회사 내 모든 사용자를 조회합니다.
      *
-     * @param loginUserId,role 현재 사용자 정보
+     * @param customUserDetails 현재 사용자 정보
      * @param companyId         대상 회사 ID
      * @return 회사 사용자 목록
      */
     @Override
-    public List<CompanyUserResponse> readsCompanyUser(Long loginUserId,String role, Long companyId) {
-        validateUserAffiliation(loginUserId,role,companyId);
+    public List<CompanyUserResponse> readsCompanyUser(CustomUserDetails customUserDetails, Long companyId) {
+        validateUserAffiliation(customUserDetails,companyId);
 
         List<CompanyUser> companyUsers = companyUserRepository.ApprovalUsers(companyId);
         List<CompanyUserResponse> companyUserResponses = new ArrayList<>();
@@ -126,15 +127,15 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     /**
      * 특정 회사 사용자를 조회합니다.
      *
-     * @param loginUserId,role 현재 사용자 정보
+     * @param customUserDetails 현재 사용자 정보
      * @param companyId         대상 회사 ID
      * @param companyUserId     조회할 회사 사용자 ID
      * @return 조회된 회사 사용자 정보
      */
 
     @Override
-    public CompanyUserResponse readCompanyUser(Long loginUserId,String role, Long companyId, Long companyUserId) {
-        validateUserAffiliation(loginUserId,role,companyId);
+    public CompanyUserResponse readCompanyUser(CustomUserDetails customUserDetails, Long companyId, Long companyUserId) {
+        validateUserAffiliation(customUserDetails,companyId);
 
         CompanyUser companyUser = companyUserRepository.ApprovalUser(companyId, companyUserId);
         return CompanyUserResponse.from(companyUser);
@@ -143,16 +144,16 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     /**
      * 회사 가입 요청을 합니다.
      *
-     * @param loginUserId,role 현재 사용자 정보
+     * @param customUserDetails 현재 사용자 정보
      * @param companyId         대상 회사 ID
      * @return 요청 성공 메시지
      */
     @Override
-    public MessageResponse requestCompanyUser(Long loginUserId,String role, Long companyId) {
-        if (userService.checkUser(loginUserId)) {
-            MyInfoResponse myInfo = userService.readUser(loginUserId);
+    public MessageResponse requestCompanyUser(CustomUserDetails customUserDetails, Long companyId) {
+        if (userService.checkUser(customUserDetails.userId())) {
+            MyInfoResponse myInfo = userService.readUser(customUserDetails.userId());
             companyUserRepository.save(CompanyUser.create(companyId,
-                    loginUserId,
+                    customUserDetails.userId(),
                     AffiliationStatus.PENDING,
                     CompanyUserType.UNASSIGN,
                     myInfo.getUserName(),
@@ -164,14 +165,14 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     /**
      * 회사 사용자 요청을 거절합니다.
      *
-     * @param loginUserId,role 현재 사용자 정보
+     * @param customUserDetails 현재 사용자 정보
      * @param companyId         대상 회사 ID
      * @param companyUserId     거절할 회사 사용자 ID
      * @return 거절 성공 메시지
      */
     @Override
-    public MessageResponse rejectCompanyUser(Long loginUserId,String role, Long companyId, Long companyUserId) {
-        authorizeAdminOrCompanyAdmin(loginUserId,role,companyId);
+    public MessageResponse rejectCompanyUser(CustomUserDetails customUserDetails, Long companyId, Long companyUserId) {
+        authorizeAdminOrCompanyAdmin(customUserDetails,companyId);
 
         CompanyUser companyUser = companyUserRepository.waitingForApprovalUser(companyId, companyUserId);
         companyUser.updateStatusUserCompany(AffiliationStatus.REJECTED);
@@ -183,14 +184,14 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     /**
      * 대기 중인 회사 사용자 요청을 조회합니다.
      *
-     * @param loginUserId,role 현재 사용자 정보
+     * @param customUserDetails 현재 사용자 정보
      * @param companyId         대상 회사 ID
      * @return 대기 중인 사용자 목록
      */
 
     @Override
-    public List<CompanyWaitingUserResponse> readsRequestCompanyUser(Long loginUserId,String role, Long companyId) {
-        authorizeAdminOrCompanyAdmin(loginUserId,role,companyId);
+    public List<CompanyWaitingUserResponse> readsRequestCompanyUser(CustomUserDetails customUserDetails, Long companyId) {
+        authorizeAdminOrCompanyAdmin(customUserDetails,companyId);
 
         List<CompanyWaitingUserResponse> companyUserResponses = new ArrayList<>();
         List<CompanyUser> companyUsers = companyUserRepository.waitingForApprovalUsers(companyId);
@@ -204,22 +205,22 @@ public class CompanyUserServiceImpl implements CompanyUserService {
     private boolean isAdmin(String role) {
         return role.equals("ADMIN");
     }
-    private void authorizeAdminOrCompanyAdmin(Long loginUserId,String role, Long companyId) {
-        if (isAdmin(role)) {
+    private void authorizeAdminOrCompanyAdmin(CustomUserDetails customUserDetails, Long companyId) {
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
             return;
         }
 
-        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, loginUserId);
+        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, customUserDetails.userId());
         if (loginUser == null || !loginUser.getType().getAuthority().equals("ADMIN")) {
             throw new IllegalArgumentException("권한없음");
         }
     }
-    private void authorizeAdminOrCompanyAdminOrSelf(Long loginUserId,String role, Long companyUserId, Long companyId) {
-        if (isAdmin(role)) {
+    private void authorizeAdminOrCompanyAdminOrSelf(CustomUserDetails customUserDetails, Long companyUserId, Long companyId) {
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
             return;
         }
 
-        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, loginUserId);
+        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, customUserDetails.userId());
         if (loginUser == null) {
             throw new IllegalArgumentException("권한없음");
         }
@@ -231,11 +232,11 @@ public class CompanyUserServiceImpl implements CompanyUserService {
             throw new IllegalArgumentException("권한없음");
         }
     }
-    private void validateUserAffiliation(Long loginUserId,String role , Long companyId) {
-        if (isAdmin(role)) {
+    private void validateUserAffiliation(CustomUserDetails customUserDetails , Long companyId) {
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
             return;
         }
-        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, loginUserId);
+        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, customUserDetails.userId());
         if (loginUser == null) {
             throw new IllegalArgumentException("권한없음");
         }

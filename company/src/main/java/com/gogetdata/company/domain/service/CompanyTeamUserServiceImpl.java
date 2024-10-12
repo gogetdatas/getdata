@@ -9,6 +9,7 @@ import com.gogetdata.company.application.dto.companyteamuser.UpdateUserPerMissio
 import com.gogetdata.company.domain.entity.*;
 import com.gogetdata.company.domain.repository.companyteamuser.CompanyTeamUserRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
+import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,14 +27,14 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
     /**
      * 팀에 가입을 신청합니다.
      *
-     * @param loginUserId,role        현재 사용자 정보
+     * @param customUserDetails        현재 사용자 정보
      * @param companyId          회사 ID
      * @param companyTeamId      팀 ID
      * @return 성공 메시지
      */
     @Override
-    public MessageResponse applyToJoinTeam (Long loginUserId,String role, Long companyId,Long companyTeamId) {
-        CompanyUser companyUser = companyUserRepository.isApprovalUser(companyId, loginUserId);
+    public MessageResponse applyToJoinTeam (CustomUserDetails customUserDetails, Long companyId, Long companyTeamId) {
+        CompanyUser companyUser = companyUserRepository.isApprovalUser(companyId, customUserDetails.userId());
         if(companyUser==null){
             throw new  IllegalArgumentException("소속이아님");
         }
@@ -50,17 +51,17 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
     /**
      * 팀 가입 요청을 승인합니다.
      *
-     * @param loginUserId,role         현재 사용자 정보
+     * @param customUserDetails         현재 사용자 정보
      * @param companyId           회사 ID
      * @param companyTeamId       팀 ID
      * @param acceptJoinRequest  승인할 가입 요청 목록
      * @return 승인 결과 메시지 목록
      */
     @Override
-    public List<MessageResponse> acceptJoinRequest(Long loginUserId,String role , Long companyId , Long companyTeamId , List<AcceptJoinRequest> acceptJoinRequest) {
+    public List<MessageResponse> acceptJoinRequest(CustomUserDetails customUserDetails , Long companyId , Long companyTeamId , List<AcceptJoinRequest> acceptJoinRequest) {
         List<MessageResponse> message = new ArrayList<>();
         // 권한체크 admin or companyAdmin or teamAdmin
-        isAdminOrAffiliatedCompany(loginUserId,role,companyTeamId);
+        isAdminOrAffiliatedCompany(customUserDetails,companyTeamId);
 
         // 요청된 팀 유저 ID 목록 추출
         List<Long> teamUserIds = acceptJoinRequest.stream()
@@ -86,15 +87,15 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
     /**
      * 팀 가입 요청을 거절합니다.
      *
-     * @param loginUserId,role         현재 사용자 정보
+     * @param customUserDetails         현재 사용자 정보
      * @param companyId           회사 ID
      * @param companyTeamId       팀 ID
      * @param userId   팀 사용자 ID
      * @return 거절 결과 메시지
      */
     @Override
-    public MessageResponse rejectJoinRequest(Long loginUserId,String role , Long companyId , Long companyTeamId,Long userId) {
-        isAdminOrAffiliatedCompany(loginUserId,role,companyTeamId);
+    public MessageResponse rejectJoinRequest(CustomUserDetails customUserDetails , Long companyId , Long companyTeamId,Long userId) {
+        isAdminOrAffiliatedCompany(customUserDetails,companyTeamId);
 
         CompanyTeamUser companyTeamUser = companyTeamUserRepository.isExistUser(companyId,companyTeamId,userId);
         companyTeamUser.rejectUser();
@@ -104,7 +105,7 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
     /**
      * 팀 사용자의 권한을 업데이트합니다.
      *
-     * @param loginUserId,role                현재 사용자 정보
+     * @param customUserDetails                현재 사용자 정보
      * @param companyId                  회사 ID
      * @param companyTeamId              팀 ID
      * @param userId                     사용자 ID
@@ -112,9 +113,9 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
      * @return 권한 업데이트 결과 메시지
      */
     @Override
-    public MessageResponse updateUserPermission(Long loginUserId,String role , Long companyId , Long companyTeamId, Long userId,
+    public MessageResponse updateUserPermission(CustomUserDetails customUserDetails , Long companyId , Long companyTeamId, Long userId,
                                                 UpdateUserPerMissionRequest updateUserPerMissionRequest) {
-        isAdminOrAffiliatedCompany(loginUserId,role,companyTeamId);
+        isAdminOrAffiliatedCompany(customUserDetails,companyTeamId);
         CompanyTeamUser companyTeamUser = companyTeamUserRepository.isExistUser(companyId,companyTeamId,userId);
         companyTeamUser.updateUserType(CompanyTeamUserType.valueOf(updateUserPerMissionRequest.getType()));
         companyTeamUserRepository.save(companyTeamUser);
@@ -123,13 +124,13 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
     /**
      * 사용자가 속한 팀 목록을 조회합니다.
      *
-     * @param loginUserId,role 현재 사용자 정보
+     * @param customUserDetails 현재 사용자 정보
      * @return 팀 목록
      */
     @Override
     @Transactional(readOnly = true)
-    public List<CompanyTeamResponse> getMyTeams(Long loginUserId,String role) {
-        List<CompanyTeam> companyTeams = companyTeamUserRepository.getMyTeams(loginUserId);
+    public List<CompanyTeamResponse> getMyTeams(CustomUserDetails customUserDetails) {
+        List<CompanyTeam> companyTeams = companyTeamUserRepository.getMyTeams(customUserDetails.userId());
         return companyTeams.stream()
                 .map(CompanyTeamResponse::from)
                 .collect(Collectors.toList());
@@ -137,14 +138,14 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
     /**
      * 팀 내 사용자 목록을 조회합니다.
      *
-     * @param loginUserId,role   현재 사용자 정보
+     * @param customUserDetails   현재 사용자 정보
      * @param companyTeamId 팀 ID
      * @return 팀 사용자 목록
      */
     @Override
-    public List<CompanyTeamUserResponse> getUsersInTeam(Long loginUserId,String role , Long companyTeamId) {
-        if(!isAdmin(role)){
-            boolean isCompanyAdminOrTeam =  companyTeamUserRepository.isExistAdminOrUser(companyTeamId,loginUserId);
+    public List<CompanyTeamUserResponse> getUsersInTeam(CustomUserDetails customUserDetails , Long companyTeamId) {
+        if(!isAdmin(customUserDetails.getAuthorities().toString())){
+            boolean isCompanyAdminOrTeam =  companyTeamUserRepository.isExistAdminOrUser(companyTeamId,customUserDetails.userId());
             if(!isCompanyAdminOrTeam){
                 throw new IllegalArgumentException("팀소속아님");
             }
@@ -159,17 +160,17 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
     /**
      * 팀에서 사용자를 삭제합니다.
      *
-     * @param loginUserId,role         현재 사용자 정보
+     * @param customUserDetails         현재 사용자 정보
      * @param companyId           회사 ID
      * @param companyTeamId       팀 ID
      * @param companyTeamUserId   팀 사용자 ID
      * @return 삭제 결과 메시지
      */
     @Override
-    public MessageResponse deleteUserFromTeam(Long loginUserId,String role , Long companyId , Long companyTeamId,Long companyTeamUserId) {
-        boolean isSelfDeletion = loginUserId.equals(companyTeamUserId);
+    public MessageResponse deleteUserFromTeam(CustomUserDetails customUserDetails , Long companyId , Long companyTeamId,Long companyTeamUserId) {
+        boolean isSelfDeletion = customUserDetails.userId().equals(companyTeamUserId);
         if (!isSelfDeletion) {
-            isAdminOrAffiliatedCompany(loginUserId,role, companyTeamId);
+            isAdminOrAffiliatedCompany(customUserDetails, companyTeamId);
         }
         CompanyTeamUser companyTeamUser = validateCompanyTeamUserNotDeleted(isExistCompanyTeamUser(companyTeamUserId));
         companyTeamUser.deleteUser();
@@ -178,11 +179,11 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
         return MessageResponse.from("삭제");
     }
 
-    public void isAdminOrAffiliatedCompany(Long loginUserId,String role,Long companyTeamId){
-        if (isAdmin(role)) {
+    public void isAdminOrAffiliatedCompany(CustomUserDetails customUserDetails,Long companyTeamId){
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
             return;
         }
-        verifyAdminAffiliation(loginUserId, companyTeamId);
+        verifyAdminAffiliation(customUserDetails.userId(), companyTeamId);
     }
     private boolean isAdmin(String role){
         return role.equals("ADMIN");

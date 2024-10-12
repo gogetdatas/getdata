@@ -13,6 +13,7 @@ import com.gogetdata.company.domain.entity.CompanyUser;
 import com.gogetdata.company.domain.entity.CompanyUserType;
 import com.gogetdata.company.domain.repository.company.CompanyRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
+import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,8 +30,8 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    public CompanyResponse createCompany(Long userId,String role, CreateCompanyRequest createCompanyRequest) {
-        RegistrationResult result = userService.registerUser(userId);
+    public CompanyResponse createCompany(CustomUserDetails customUserDetails, CreateCompanyRequest createCompanyRequest) {
+        RegistrationResult result = userService.registerUser(customUserDetails.userId());
         if (!result.isSuccess()) {
             throw new IllegalAccessError("이미 소속되어 있습니다.");
         }
@@ -43,7 +44,7 @@ public class CompanyServiceImpl implements CompanyService {
 
         CompanyUser companyUser = CompanyUser.create(
                 company.getCompanyId(),
-                userId,
+                customUserDetails.userId(),
                 AffiliationStatus.APPROVED,
                 CompanyUserType.ADMIN,
                 result.getUserName(),
@@ -56,15 +57,15 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional(readOnly = true)
-    public CompanyResponse readCompany(Long userId,String role, Long companyId) {
-        Company company = getReadableCompany(userId,role, companyId);
+    public CompanyResponse readCompany(CustomUserDetails customUserDetails, Long companyId) {
+        Company company = getReadableCompany(customUserDetails, companyId);
         return CompanyResponse.from(company);
     }
 
     @Override
     @Transactional
-    public CompanyResponse updateCompany(Long userId,String role, Long companyId, UpdateCompanyRequest updateCompanyRequest) {
-        Company company = getAdminAccessibleCompany(userId,role, companyId);
+    public CompanyResponse updateCompany(CustomUserDetails customUserDetails, Long companyId, UpdateCompanyRequest updateCompanyRequest) {
+        Company company = getAdminAccessibleCompany(customUserDetails, companyId);
         company.updateCompany(updateCompanyRequest.getCompanyName());
         companyRepository.save(company);
         return CompanyResponse.from(company);
@@ -72,8 +73,8 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
-    public MessageResponse deleteCompany(Long userId,String role,Long companyId) {
-        Company company = getAdminAccessibleCompany(userId,role, companyId);
+    public MessageResponse deleteCompany(CustomUserDetails customUserDetails,Long companyId) {
+        Company company = getAdminAccessibleCompany(customUserDetails, companyId);
         company.delete();
         return MessageResponse.from("삭제 완료되었습니다.");
     }
@@ -82,15 +83,15 @@ public class CompanyServiceImpl implements CompanyService {
      * 읽기 작업을 위한 접근 가능한 회사를 반환합니다.
      * Admin 사용자 또는 해당 회사에 소속된 사용자만 접근 가능합니다.
      *
-     * @param userId,role 사용자 정보
+     * @param customUserDetails 사용자 정보
      * @param companyId         접근하려는 회사 ID
      * @return 접근 가능한 회사 엔티티
      */
-    private Company getReadableCompany(Long userId,String role, Long companyId) {
-        if (isAdmin(role)) {
+    private Company getReadableCompany(CustomUserDetails customUserDetails, Long companyId) {
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
             return validateCompanyNotDeleted(findCompany(companyId));
         } else {
-            return verifyUserAffiliation(userId, companyId);
+            return verifyUserAffiliation(customUserDetails.userId(), companyId);
         }
     }
 
@@ -98,15 +99,15 @@ public class CompanyServiceImpl implements CompanyService {
      * 읽기 작업을 위한 Admin 접근 가능한 회사를 반환합니다.
      * 회사에 소속된 Admin 사용자만 접근 가능합니다.
      *
-     * @param userId 사용자 정보
+     * @param customUserDetails 사용자 정보
      * @param companyId         접근하려는 회사 ID
      * @return 접근 가능한 회사 엔티티
      */
-    private Company getAdminAccessibleCompany(Long userId,String role, Long companyId) {
-        if (isAdmin(role)) {
+    private Company getAdminAccessibleCompany(CustomUserDetails customUserDetails, Long companyId) {
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
             return validateCompanyNotDeleted(findCompany(companyId));
         } else {
-            return verifyAdminAffiliation(userId, companyId);
+            return verifyAdminAffiliation(customUserDetails.userId(), companyId);
         }
     }
 

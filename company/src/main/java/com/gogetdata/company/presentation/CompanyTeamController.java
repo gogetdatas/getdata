@@ -5,8 +5,10 @@ import com.gogetdata.company.application.dto.MessageResponse;
 import com.gogetdata.company.application.dto.companyteam.RequestCompanyTeamRequest;
 import com.gogetdata.company.application.dto.companyteam.RequestCompanyTeamResponse;
 import com.gogetdata.company.application.dto.companyteam.UpdateTeamRequest;
+import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,51 +19,45 @@ import java.util.List;
 public class CompanyTeamController {
     private final CompanyTeamService companyTeamService;
     @PostMapping("/{companyId}/teams")
-    public ResponseEntity<MessageResponse> requestCompanyTeam(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                              @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> requestCompanyTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                @RequestBody RequestCompanyTeamRequest requestCompanyTeamRequest,
                                                                @PathVariable Long companyId ) {
-        MessageResponse response = companyTeamService.requestCompanyTeam(loginUserId,role,companyId,requestCompanyTeamRequest);
+        MessageResponse response = companyTeamService.requestCompanyTeam(customUserDetails,companyId,requestCompanyTeamRequest);
         return ResponseEntity.ok(response);
     }
     @GetMapping("/{companyId}/teams/requests")
-    public ResponseEntity<List<RequestCompanyTeamResponse>> requestReadCompanyTeam(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                                                   @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<List<RequestCompanyTeamResponse>> requestReadCompanyTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                                    @PathVariable Long companyId ) {
-        List<RequestCompanyTeamResponse> response = companyTeamService.requestReadCompanyTeam(loginUserId,role,companyId);
+        List<RequestCompanyTeamResponse> response = companyTeamService.requestReadCompanyTeam(customUserDetails,companyId);
         return ResponseEntity.ok(response);
     }
     @PutMapping("/{companyId}/teams/{companyTeamId}/approve")
-    public ResponseEntity<MessageResponse> approveRequestCompanyTeam(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                                     @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> approveRequestCompanyTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                                       @PathVariable Long companyId ,
                                                                                       @PathVariable Long companyTeamId) {
-        MessageResponse response = companyTeamService.approveRequestCompanyTeam(loginUserId,role,companyTeamId,companyId);
+        MessageResponse response = companyTeamService.approveRequestCompanyTeam(customUserDetails,companyTeamId,companyId);
         return ResponseEntity.ok(response);
     }
     @PatchMapping("/{companyId}/teams/{companyTeamId}/name")
-    public ResponseEntity<MessageResponse> updateCompanyTeamName(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                                 @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> updateCompanyTeamName(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                  @PathVariable Long companyId ,
                                                                  @PathVariable Long companyTeamId,
                                                                  @RequestBody UpdateTeamRequest updateTeamRequest) {
-        MessageResponse response = companyTeamService.updateCompanyTeamName(loginUserId,role,companyTeamId,companyId,updateTeamRequest);
+        MessageResponse response = companyTeamService.updateCompanyTeamName(customUserDetails,companyTeamId,companyId,updateTeamRequest);
         return ResponseEntity.ok(response);
     }
     @DeleteMapping("/{companyId}/teams/{companyTeamId}")
-    public ResponseEntity<MessageResponse> deleteCompanyTeam(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                             @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> deleteCompanyTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                  @PathVariable Long companyId ,
                                                                  @PathVariable Long companyTeamId) {
-        MessageResponse response = companyTeamService.deleteCompanyTeam(loginUserId,role,companyTeamId,companyId);
+        MessageResponse response = companyTeamService.deleteCompanyTeam(customUserDetails,companyTeamId,companyId);
         return ResponseEntity.ok(response);
     }
     @PostMapping("/{companyId}/teams/{companyTeamId}/reject")
-    public ResponseEntity<MessageResponse> rejectRequestCompanyTeam(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                                    @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> rejectRequestCompanyTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                              @PathVariable Long companyId ,
                                                              @PathVariable Long companyTeamId) {
-        MessageResponse response = companyTeamService.rejectRequestCompanyTeam(loginUserId,role,companyTeamId,companyId);
+        MessageResponse response = companyTeamService.rejectRequestCompanyTeam(customUserDetails,companyTeamId,companyId);
         return ResponseEntity.ok(response);
     }
 }

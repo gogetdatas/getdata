@@ -6,8 +6,10 @@ import com.gogetdata.company.application.dto.companyteam.CompanyTeamResponse;
 import com.gogetdata.company.application.dto.companyteamuser.AcceptJoinRequest;
 import com.gogetdata.company.application.dto.companyteamuser.CompanyTeamUserResponse;
 import com.gogetdata.company.application.dto.companyteamuser.UpdateUserPerMissionRequest;
+import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,61 +20,54 @@ import java.util.List;
 public class CompanyTeamUserController {
     private final CompanyTeamUserService companyTeamUserService;
     @PostMapping("/{companyId}/teams/{companyTeamId}/users")
-    public ResponseEntity<MessageResponse> applyToJoinTeam(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                           @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> applyToJoinTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                            @PathVariable Long companyId,
                                                            @PathVariable Long companyTeamId ) {
-        MessageResponse response = companyTeamUserService.applyToJoinTeam(loginUserId,role,companyId,companyTeamId);
+        MessageResponse response = companyTeamUserService.applyToJoinTeam(customUserDetails,companyId,companyTeamId);
         return ResponseEntity.ok(response);
     }
     @PostMapping("/{companyId}/teams/{companyTeamId}/users")
-    public ResponseEntity<List<MessageResponse>> acceptJoinRequest(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                                   @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<List<MessageResponse>> acceptJoinRequest(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                    @PathVariable Long companyId,
                                                                    @PathVariable Long companyTeamId ,
                                                                    @RequestBody List<AcceptJoinRequest> acceptJoinRequest) {
-        List<MessageResponse> response = companyTeamUserService.acceptJoinRequest(loginUserId,role,companyId,companyTeamId,acceptJoinRequest);
+        List<MessageResponse> response = companyTeamUserService.acceptJoinRequest(customUserDetails,companyId,companyTeamId,acceptJoinRequest);
         return ResponseEntity.ok(response);
     }
     @PostMapping("/{companyId}/teams/{companyTeamId}/users/{teamUserId}/reject")
-    public ResponseEntity<MessageResponse> rejectJoinRequest(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                             @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> rejectJoinRequest(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                              @PathVariable Long companyId,
                                                              @PathVariable Long companyTeamId ,
                                                              @PathVariable Long teamUserId) {
-        MessageResponse response = companyTeamUserService.rejectJoinRequest(loginUserId,role,companyId,companyTeamId,teamUserId);
+        MessageResponse response = companyTeamUserService.rejectJoinRequest(customUserDetails,companyId,companyTeamId,teamUserId);
         return ResponseEntity.ok(response);
     }
     @PatchMapping("/{companyId}/teams/{companyTeamId}/users/{teamUserId}/permission")
-    public ResponseEntity<MessageResponse> updateUserPermission(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                                @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> updateUserPermission(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                 @PathVariable Long companyId,
                                                                 @PathVariable Long companyTeamId ,
                                                                 @PathVariable Long teamUserId,
                                                                 @RequestBody UpdateUserPerMissionRequest updateUserPerMissionRequest) {
-        MessageResponse response = companyTeamUserService.updateUserPermission(loginUserId,role,companyId,companyTeamId,teamUserId,updateUserPerMissionRequest);
+        MessageResponse response = companyTeamUserService.updateUserPermission(customUserDetails,companyId,companyTeamId,teamUserId,updateUserPerMissionRequest);
         return ResponseEntity.ok(response);
     }
     @GetMapping("/me/teams")
-    public ResponseEntity<List<CompanyTeamResponse>> getMyTeams(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                                @RequestHeader(value = "X-Role") String role) {
-        List<CompanyTeamResponse> response = companyTeamUserService.getMyTeams(loginUserId,role);
+    public ResponseEntity<List<CompanyTeamResponse>> getMyTeams(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
+        List<CompanyTeamResponse> response = companyTeamUserService.getMyTeams(customUserDetails);
         return ResponseEntity.ok(response);
     }
     @GetMapping("/teams/{companyTeamId}/users")
-    public ResponseEntity<List<CompanyTeamUserResponse>> getUsersInTeam(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                                        @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<List<CompanyTeamUserResponse>> getUsersInTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                         @PathVariable Long companyTeamId) {
-        List<CompanyTeamUserResponse> response = companyTeamUserService.getUsersInTeam(loginUserId,role,companyTeamId);
+        List<CompanyTeamUserResponse> response = companyTeamUserService.getUsersInTeam(customUserDetails,companyTeamId);
         return ResponseEntity.ok(response);
     }
     @DeleteMapping("/{companyId}/teams/{companyTeamId}/users/{teamUserId}")
-    public ResponseEntity<MessageResponse> deleteUserFromTeam(@RequestHeader(value = "X-User-Id") Long loginUserId,
-                                                              @RequestHeader(value = "X-Role") String role,
+    public ResponseEntity<MessageResponse> deleteUserFromTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                               @PathVariable Long companyId,
                                                               @PathVariable Long companyTeamId ,
                                                               @PathVariable Long teamUserId) {
-        MessageResponse response = companyTeamUserService.deleteUserFromTeam(loginUserId,role,companyId,companyTeamId,teamUserId);
+        MessageResponse response = companyTeamUserService.deleteUserFromTeam(customUserDetails,companyId,companyTeamId,teamUserId);
         return ResponseEntity.ok(response);
     }
 }

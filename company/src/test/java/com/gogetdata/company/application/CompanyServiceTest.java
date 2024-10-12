@@ -10,6 +10,7 @@ import com.gogetdata.company.domain.entity.CompanyUser;
 import com.gogetdata.company.domain.repository.company.CompanyRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
 import com.gogetdata.company.domain.service.CompanyServiceImpl;
+import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
@@ -59,6 +61,8 @@ class CompanyServiceTest {
         @Test
         void successCreateCompany() {
             // given
+            CustomUserDetails customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")),1L,"USER");
+
             CreateCompanyRequest createCompanyRequest = new CreateCompanyRequest("Test Company");
             RegistrationResult result = new RegistrationResult(userId, "abc", "testuser@example.com", true);
             Company mockCompany = Company.create(createCompanyRequest.getCompanyName(), UUID.randomUUID().toString());
@@ -66,7 +70,7 @@ class CompanyServiceTest {
             when(companyRepository.save(any(Company.class))).thenReturn(mockCompany);
             when(userService.registerUser(userId)).thenReturn(result);
             // when
-            CompanyResponse response = companyService.createCompany(userId,"USER", createCompanyRequest);
+            CompanyResponse response = companyService.createCompany(customUserDetails, createCompanyRequest);
 
             // then
             verify(companyRepository, times(1)).save(any(Company.class));
@@ -82,11 +86,13 @@ class CompanyServiceTest {
         @Test
         void FailCreateCompany() {
             // given
+            CustomUserDetails customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")),1L,"USER");
+
             CreateCompanyRequest createCompanyRequest = new CreateCompanyRequest("Test Company");
             RegistrationResult result = new RegistrationResult(1L, "abc", "testuser@example.com", false);
             when(userService.registerUser(userId)).thenReturn(result);
             // when
-            Throwable throwable = catchThrowable(() -> companyService.createCompany(userId,"USER", createCompanyRequest));
+            Throwable throwable = catchThrowable(() -> companyService.createCompany(customUserDetails, createCompanyRequest));
             // then
             assertThat(throwable).isInstanceOf(IllegalAccessError.class);
 
@@ -100,10 +106,12 @@ class CompanyServiceTest {
         @Test
         void SuccessReadCompany() {
             // given
+            CustomUserDetails customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")),1L,"USER");
+
             Company userCompany = new Company(1L,"abc","@@@@@@@aldawldkawdwq");
             given(companyUserRepository.getCompanyUser(userId, companyId)).willReturn(userCompany);
             // when
-            CompanyResponse response = companyService.readCompany(userId,"USER", companyId);
+            CompanyResponse response = companyService.readCompany(customUserDetails, companyId);
 
             // then
             assertThat(response).isNotNull();
@@ -126,12 +134,14 @@ class CompanyServiceTest {
         @Test
         void SuccessUpdateCompany() {
             // given
+            CustomUserDetails customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")),1L,"ADMIN");
+
             Company userCompany = new Company(1L,"abc","@@@@@@@aldawldkawdwq");
             given(companyUserRepository.getCompanyUserAdmin(userId, companyId)).willReturn(userCompany);
             UpdateCompanyRequest updateCompanyRequest = new UpdateCompanyRequest("acbd");
 
             // when
-            CompanyResponse result = companyService.updateCompany(userId,"USER", companyId, updateCompanyRequest);
+            CompanyResponse result = companyService.updateCompany(customUserDetails, companyId, updateCompanyRequest);
             // then
             assertThat(result.companyName()).isEqualTo("acbd");
 
@@ -141,11 +151,13 @@ class CompanyServiceTest {
         @Test
         void failUpdateCompany() {
             // given
+            CustomUserDetails customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")),1L,"USER");
+
             given(companyUserRepository.getCompanyUserAdmin(userId, companyId)).willReturn(null);
 
             UpdateCompanyRequest updateCompanyRequest = new UpdateCompanyRequest("acbd");
             // when
-            Throwable throwable = catchThrowable(() -> companyService.updateCompany(userId,"USER", companyId, updateCompanyRequest));
+            Throwable throwable = catchThrowable(() -> companyService.updateCompany(customUserDetails, companyId, updateCompanyRequest));
 
             // then
             assertThat(throwable).isInstanceOf(IllegalAccessError.class);
@@ -160,22 +172,26 @@ class CompanyServiceTest {
         @Test
         void SuccessDeleteCompany() {
             // given
+            CustomUserDetails customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")),1L,"ADMIN");
+
             Company userCompany = new Company(1L,"abc","@@@@@@@aldawldkawdwq");
 
             given(companyUserRepository.getCompanyUserAdmin(userId, companyId)).willReturn(userCompany);
             // when
-            MessageResponse result = companyService.deleteCompany(userId,"USER",companyId);
+            MessageResponse result = companyService.deleteCompany(customUserDetails,companyId);
             // then
             assertThat(result.getMessage()).isEqualTo("삭제 완료되었습니다.");
         }
 
-        @DisplayName("업체 삭제 : 성공적으로 삭제")
+        @DisplayName("업체 삭제 : 삭제 실패 ")
         @Test
         void FailDeleteCompany() {
             // given
+            CustomUserDetails customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")),1L,"USER");
+
             given(companyUserRepository.getCompanyUserAdmin(userId, companyId)).willReturn(null);
             // when
-            Throwable throwable = catchThrowable(() -> companyService.deleteCompany(userId,"USER",companyId));
+            Throwable throwable = catchThrowable(() -> companyService.deleteCompany(customUserDetails,companyId));
             // then
             assertThat(throwable).isInstanceOf(IllegalAccessError.class);
         }
