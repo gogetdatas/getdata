@@ -7,6 +7,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @FeignClient(name = "company-service")
 public interface CompanyTeamClient extends CompanyTeamService {
-    @GetMapping("/company/companyteam/{companyTeamId}/users/{userId}") // 유저 검증 API
-    Boolean checkUserInTeam(@PathVariable Long companyTeamId,@PathVariable Long userId);
+    @GetMapping("/company/teams/{companyTeamId}/users/{userId}") // 유저 검증 API
+    String checkUserInTeam(@PathVariable Long companyTeamId,@PathVariable Long userId);
 }

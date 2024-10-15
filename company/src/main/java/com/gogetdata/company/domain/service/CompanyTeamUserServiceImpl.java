@@ -179,6 +179,12 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
         return MessageResponse.from("삭제");
     }
 
+    @Override
+    public String getUserInTeam(Long companyTeamId, Long userId) {
+        CompanyTeamUser companyTeamUser=companyTeamUserRepository.checkUserInTeam(companyTeamId,userId);
+        return companyTeamUser == null ? "null" : String.valueOf(companyTeamUser.getCompanyTeamUserType());
+    }
+
     public void isAdminOrAffiliatedCompany(CustomUserDetails customUserDetails,Long companyTeamId){
         if (isAdmin(customUserDetails.getAuthorities().toString())) {
             return;

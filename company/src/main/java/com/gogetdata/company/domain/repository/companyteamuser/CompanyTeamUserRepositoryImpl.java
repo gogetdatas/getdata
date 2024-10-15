@@ -9,8 +9,9 @@ import java.util.List;
 import static com.gogetdata.company.domain.entity.QCompanyTeamUser.companyTeamUser;
 import static com.gogetdata.company.domain.entity.QCompanyUser.companyUser;
 import static com.gogetdata.company.domain.entity.QCompanyTeam.companyTeam;
+
 @RequiredArgsConstructor
-public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryCustom{
+public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
@@ -27,7 +28,6 @@ public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryC
                 .where(companyUser.userId.eq(userId)
                         .and(
                                 companyUser.type.eq(CompanyUserType.ADMIN)
-                                .or(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.ADMIN))
                                         .or(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.ADMIN))
                         )
                 )
@@ -50,7 +50,6 @@ public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryC
                 .where(companyUser.userId.eq(userId)
                         .and(
                                 companyUser.type.eq(CompanyUserType.ADMIN)
-                                        .or(companyTeamUser.companyTeamUserType.eq(CompanyTeamUserType.ADMIN))
                                         .or(companyTeamUser.companyTeamUserType.in(
                                                 CompanyTeamUserType.ADMIN,
                                                 CompanyTeamUserType.USER))
@@ -60,7 +59,20 @@ public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryC
     }
 
     @Override
-    public List<CompanyTeamUser> isExistUsers(Long companyId,Long companyTeamId, List<Long> userIds) {
+    public CompanyTeamUser checkUserInTeam(Long companyTeamId, Long userId) {
+        return queryFactory.select(companyTeamUser)
+                .from(companyTeamUser)
+                .where(companyTeamUser.userId.eq(userId)
+                        .and(companyTeamUser.isDeleted.eq(false))
+                        .or(companyTeamUser.companyTeamUserType.in(
+                                CompanyTeamUserType.ADMIN,
+                                CompanyTeamUserType.USER))
+                )
+                .fetchFirst();
+    }
+
+    @Override
+    public List<CompanyTeamUser> isExistUsers(Long companyId, Long companyTeamId, List<Long> userIds) {
         return queryFactory.select(companyTeamUser)
                 .from(companyTeamUser)
                 .innerJoin(companyTeamUser).on(companyTeamUser.userId.eq(companyUser.userId))

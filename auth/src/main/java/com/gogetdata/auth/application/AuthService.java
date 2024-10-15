@@ -49,7 +49,7 @@ public class AuthService {
 
     public AuthResponse signIn(signInRequest signInRequest) {
         User user =userRepository.findByemail(signInRequest.getEmail())
-                .orElseThrow(()->new IllegalArgumentException("Invalid email"));
+                .orElseThrow(()->new IllegalArgumentException("존재하지않음"));
         if(!passwordEncoder.matches(signInRequest.getPassword(),user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 다름");
         }

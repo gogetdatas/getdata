@@ -70,4 +70,11 @@ public class CompanyTeamUserController {
         MessageResponse response = companyTeamUserService.deleteUserFromTeam(customUserDetails,companyId,companyTeamId,teamUserId);
         return ResponseEntity.ok(response);
     }
+    @GetMapping("/teams/{companyTeamId}/users/{userId}")
+    public ResponseEntity<String> getUserInTeam(@PathVariable Long companyTeamId,
+                                                                       @PathVariable Long userId) {
+        String response = companyTeamUserService.getUserInTeam(companyTeamId,userId);
+        return ResponseEntity.ok(response);
+    }
+
 }
