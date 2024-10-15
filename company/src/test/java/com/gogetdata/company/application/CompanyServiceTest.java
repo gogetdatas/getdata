@@ -68,13 +68,13 @@ class CompanyServiceTest {
             Company mockCompany = Company.create(createCompanyRequest.getCompanyName(), UUID.randomUUID().toString());
 
             when(companyRepository.save(any(Company.class))).thenReturn(mockCompany);
-            when(userService.registerUser(userId)).thenReturn(result);
+            when(userService.registerUser(userId,companyId)).thenReturn(result);
             // when
             CompanyResponse response = companyService.createCompany(customUserDetails, createCompanyRequest);
 
             // then
             verify(companyRepository, times(1)).save(any(Company.class));
-            verify(userService, times(1)).registerUser(userId);
+            verify(userService, times(1)).registerUser(userId,companyId);
             verify(companyUserRepository, times(1)).save(any(CompanyUser.class));
             assertThat(response).isNotNull();
             assertThat(response.companyId()).isEqualTo(mockCompany.getCompanyId());
@@ -90,7 +90,7 @@ class CompanyServiceTest {
 
             CreateCompanyRequest createCompanyRequest = new CreateCompanyRequest("Test Company");
             RegistrationResult result = new RegistrationResult(1L, "abc", "testuser@example.com", false);
-            when(userService.registerUser(userId)).thenReturn(result);
+            when(userService.registerUser(userId,companyId)).thenReturn(result);
             // when
             Throwable throwable = catchThrowable(() -> companyService.createCompany(customUserDetails, createCompanyRequest));
             // then

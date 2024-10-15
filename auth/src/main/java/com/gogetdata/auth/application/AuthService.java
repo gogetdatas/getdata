@@ -13,6 +13,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
@@ -33,12 +34,14 @@ public class AuthService {
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(secretKey));
         this.passwordEncoder = passwordEncoder;
     }
-    public void signUp(signUpRequest signUpRequest) { // 여기서 컴퍼니 네임 있는지 확인하고 없으면 그냥 저장시키고 , 있으면 요청을 보냄
+    @Transactional
+    public void signUp(signUpRequest signUpRequest) {
         existEmail(signUpRequest.getEmail());
-        userRepository.save(User.create(signUpRequest.getUserName(),
+        User user = User.create(signUpRequest.getUserName(),
                 signUpRequest.getEmail(),
                 passwordEncoder.encode(signUpRequest.getPassword()),
-                UserTypeEnum.USER));
+                UserTypeEnum.USER);
+        userRepository.save(user);
     }
     private void existEmail(String email){
         Optional<User> userEmail = userRepository.findByemail(email);
@@ -53,12 +56,14 @@ public class AuthService {
         if(!passwordEncoder.matches(signInRequest.getPassword(),user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 다름");
         }
-        return createToken(user.getUserId(),user.getUserType());
+        return createToken(user.getUserId(),user.getUserType(),user.getCompanyId(),user.getCompanyType());
     }
-    public AuthResponse createToken(Long userId, UserTypeEnum role) {
+    public AuthResponse createToken(Long userId, UserTypeEnum role , Long companyId, String companyRole) {
         return AuthResponse.of(BEARER_PREFIX + Jwts.builder()
                 .claim("user_id", userId)
-                .claim("role",role)
+                .claim("user_role",role)
+                .claim("company_id",companyId)
+                .claim("company_role",companyRole)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + accessExpiration))
                 .signWith(secretKey, SignatureAlgorithm.HS512)

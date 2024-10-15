@@ -31,16 +31,17 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public CompanyResponse createCompany(CustomUserDetails customUserDetails, CreateCompanyRequest createCompanyRequest) {
-        RegistrationResult result = userService.registerUser(customUserDetails.userId());
-        if (!result.isSuccess()) {
-            throw new IllegalAccessError("이미 소속되어 있습니다.");
-        }
 
         Company company = Company.create(
                 createCompanyRequest.getCompanyName(),
                 UUID.randomUUID().toString()
         );
+        RegistrationResult result = userService.registerUser(customUserDetails.userId(),company.getCompanyId());
+        if (!result.isSuccess()) {
+            throw new IllegalAccessError("이미 소속되어 있습니다.");
+        }
         companyRepository.save(company);
+
 
         CompanyUser companyUser = CompanyUser.create(
                 company.getCompanyId(),

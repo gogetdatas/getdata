@@ -3,6 +3,7 @@ package com.gogetdata.company.application;
 import com.gogetdata.company.application.dto.MessageResponse;
 import com.gogetdata.company.application.dto.companyuser.*;
 import com.gogetdata.company.application.dto.feignclient.MyInfoResponse;
+import com.gogetdata.company.application.dto.feignclient.RegistrationResult;
 import com.gogetdata.company.application.dto.feignclient.RegistrationResults;
 import com.gogetdata.company.domain.entity.AffiliationStatus;
 import com.gogetdata.company.domain.entity.CompanyUser;
@@ -25,6 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -67,7 +69,7 @@ class CompanyUserServiceTest {
                     new RegistrationResults(1L, 1L, true, "ADMIN", "User1"),
                     new RegistrationResults(2L, 2L, false, "USER", "User2")
             );
-            given(userService.registerUsers(userRegistrationRequests)).willReturn(registrationResults);
+            given(userService.registerUsers(any(UserRegistration.class))).willReturn(registrationResults);
             List<CompanyUser> waitingUsers = List.of(
                     new CompanyUser(1L, companyId, 1L, AffiliationStatus.PENDING, CompanyUserType.UNASSIGN, "User1", "User1@email.com")
             );
@@ -200,15 +202,15 @@ class CompanyUserServiceTest {
             // given
             CustomUserDetails customUserDetails = new CustomUserDetails(1L, Collections.singleton(new SimpleGrantedAuthority("USER")),1L,"USER");
 
-            given(userService.checkUser(customUserDetails.userId())).willReturn(true);
+            RegistrationResult result = new RegistrationResult(customUserDetails.userId(), "abc", "testuser@example.com", true);
             MyInfoResponse myInfo = new MyInfoResponse(customUserDetails.userId(),"user1","user1@email.com",false);
             given(userService.readUser(customUserDetails.userId())).willReturn(myInfo);
 
             CompanyUser companyUser = new CompanyUser(1L, companyId, customUserDetails.userId(), AffiliationStatus.PENDING, CompanyUserType.UNASSIGN, myInfo.getUserName(), myInfo.getEmail());
             // when
-            MessageResponse result = companyUserService.requestCompanyUser(customUserDetails,companyId);
+            MessageResponse response  = companyUserService.requestCompanyUser(customUserDetails,companyId);
             // then
-            assertThat(result.getMessage()).isEqualTo("요청완료");
+            assertThat(response .getMessage()).isEqualTo("요청완료");
 
         }
     }
