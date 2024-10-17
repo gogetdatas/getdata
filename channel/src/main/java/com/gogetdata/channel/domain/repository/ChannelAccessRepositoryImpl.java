@@ -9,8 +9,9 @@ import java.util.List;
 
 import static com.gogetdata.channel.domain.entity.QChannel.channel;
 import static com.gogetdata.channel.domain.entity.QChannelAccess.channelAccess;
+
 @RequiredArgsConstructor
-public class ChannelAccessRepositoryImpl implements ChannelAccessRepositoryCustom{
+public class ChannelAccessRepositoryImpl implements ChannelAccessRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override
@@ -39,5 +40,14 @@ public class ChannelAccessRepositoryImpl implements ChannelAccessRepositoryCusto
                 .fetch();
     }
 
-
+    @Override
+    public List<ChannelAccess> findsAccessChannel(Long channelId) {
+        return queryFactory
+                .selectFrom(channelAccess)
+                .where(
+                        channelAccess.isDeleted.eq(false)
+                                .and(channelAccess.channelId.eq(channelId))
+                )
+                .fetch();
+    }
 }

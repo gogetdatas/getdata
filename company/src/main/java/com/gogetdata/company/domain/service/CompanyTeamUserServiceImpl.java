@@ -185,6 +185,22 @@ public class CompanyTeamUserServiceImpl implements CompanyTeamUserService {
         return companyTeamUser == null ? "null" : String.valueOf(companyTeamUser.getCompanyTeamUserType());
     }
 
+    @Override
+    public List<CompanyTeamUserResponse> searchTeamUser(CustomUserDetails customUserDetails, Long companyId, Long companyTeamId, String userName) {
+        if(!isAdmin(customUserDetails.getAuthorities().toString())){
+            boolean isCompanyAdminOrTeam =  companyTeamUserRepository.isExistAdminOrUser(companyTeamId,customUserDetails.userId());
+            if(!isCompanyAdminOrTeam){
+                throw new IllegalArgumentException("팀소속아님");
+            }
+        }
+        List<CompanyTeamUserResponse> userResponses = new ArrayList<>();
+        List<CompanyTeamUser> users = companyTeamUserRepository.getSearchTeamUser(companyTeamId,userName);
+        for (CompanyTeamUser user : users) {
+            userResponses.add(CompanyTeamUserResponse.from(user));
+        }
+        return userResponses;
+    }
+
     public void isAdminOrAffiliatedCompany(CustomUserDetails customUserDetails,Long companyTeamId){
         if (isAdmin(customUserDetails.getAuthorities().toString())) {
             return;

@@ -1,9 +1,13 @@
 package com.gogetdata.channel.application;
 
+import com.gogetdata.channel.application.dto.ChannelResponse;
 import com.gogetdata.channel.application.dto.MessageResponse;
 import com.gogetdata.channel.application.dto.TeamRequest;
 import com.gogetdata.channel.application.dto.UpdateChannelAccessRequest;
+import com.gogetdata.channel.domain.entity.ChannelAccess;
 import com.gogetdata.channel.infrastructrue.filter.CustomUserDetails;
+
+import java.util.List;
 
 public interface ChannelAccessService {
     MessageResponse grantChannelAccess(TeamRequest TeamRequests,
@@ -21,4 +25,5 @@ public interface ChannelAccessService {
                                             Long companyTeamId,
                                             Long companyId,
                                             Long channelId); // 채널 접근권한 변경
+    List<ChannelAccessResponse> readsChannelAccess(CustomUserDetails customUserDetails , Long companyTeamId , Long companyId ,Long channelId);
 }

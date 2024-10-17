@@ -19,6 +19,8 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -79,6 +81,16 @@ public class CompanyServiceImpl implements CompanyService {
         Company company = getAdminAccessibleCompany(customUserDetails, companyId);
         company.delete();
         return MessageResponse.from("삭제 완료되었습니다.");
+    }
+
+    @Override
+    public List<CompanyResponse> searchCompany(String companyName) {
+        List<CompanyResponse> companyResponses = new ArrayList<>();
+        List<Company> companies = companyUserRepository.getSearchCompany(companyName);
+        for (Company company : companies) {
+            companyResponses.add(CompanyResponse.from(company));
+        }
+        return companyResponses;
     }
 
     /**

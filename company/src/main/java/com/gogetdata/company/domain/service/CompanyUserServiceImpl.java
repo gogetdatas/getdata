@@ -204,6 +204,17 @@ public class CompanyUserServiceImpl implements CompanyUserService {
         return companyUserResponses;
     }
 
+    @Override
+    public List<CompanyUserResponse> searchCompanyUser(CustomUserDetails customUserDetails, Long companyId,String companyUserName) {
+        validateUserAffiliation(customUserDetails,companyId);
+        List<CompanyUserResponse> companyUserResponses = new ArrayList<>();
+        List<CompanyUser> companyUsers = companyUserRepository.getSearchApprovalUsers(companyId,companyUserName);
+        for (CompanyUser companyUser : companyUsers) {
+            companyUserResponses.add(CompanyUserResponse.from(companyUser));
+        }
+        return companyUserResponses;
+    }
+
 
     private boolean isAdmin(String role) {
         return role.equals("ADMIN");
