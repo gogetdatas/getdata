@@ -47,9 +47,9 @@ public class JwtAuthenticationFilter implements GlobalFilter {
         }
         exchange.getRequest().mutate()
                 .header("X-User-Id", payload.getPayload().get("user_id").toString())
-                .header("X-User-Role", payload.getPayload().get("user_role").toString())
+                .header("X-User-Type", payload.getPayload().get("user_role").toString())
                 .header("X-Company-Id", payload.getPayload().get("company_id").toString())
-                .header("X-Company-Role", payload.getPayload().get("company_role").toString())
+                .header("X-Company-Type", payload.getPayload().get("company_role").toString())
                 .build();
         return chain.filter(exchange);
     }

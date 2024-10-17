@@ -9,13 +9,13 @@ import com.gogetdata.company.domain.entity.*;
 import com.gogetdata.company.domain.repository.companyteam.CompanyTeamRepository;
 import com.gogetdata.company.domain.repository.companyteamuser.CompanyTeamUserRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
+import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,17 +25,18 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
     private final CompanyTeamRepository companyTeamRepository;
     private final CompanyTeamUserRepository companyTeamUserRepository;
     @Override
-    public MessageResponse requestCompanyTeam(Long loginUserId,String role, Long companyId, RequestCompanyTeamRequest requestCompanyTeamRequest,Long loginCompanyId) {
-        getReadableCompany(role,companyId,loginCompanyId);
+    public MessageResponse requestCompanyTeam(CustomUserDetails customUserDetails, Long companyId, RequestCompanyTeamRequest requestCompanyTeamRequest) {
+        validateUserAffiliation(customUserDetails,companyId);
+
         CompanyTeam companyTeam = CompanyTeam.create(companyId, requestCompanyTeamRequest.getCompanyTeamName(), CompanyTeamStatus.PENDING);
-        companyTeam.setCreatedBy(loginUserId);
+        companyTeam.setCreatedBy(customUserDetails.userId());
         companyTeamRepository.save(companyTeam);
         return MessageResponse.from("요청완료");
     }
 
     @Override
-    public List<RequestCompanyTeamResponse> requestReadCompanyTeam(String role, Long companyId,Long loginCompanyId,String loginUserType) {
-        getAdminAccessibleCompany(role,companyId,loginCompanyId,loginUserType);
+    public List<RequestCompanyTeamResponse> requestReadCompanyTeam(CustomUserDetails customUserDetails, Long companyId) {
+        authorizeAdminOrCompanyAdmin(customUserDetails,companyId);
 
         List<CompanyTeam> companyTeams = companyTeamRepository.readRequestCompanyTeams(companyId);
         return companyTeams.stream()
@@ -45,8 +46,8 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
 
     @Override
     @Transactional
-    public MessageResponse approveRequestCompanyTeam(String role, Long companyTeamId,Long companyId,Long loginCompanyId,String loginUserType) {
-        getAdminAccessibleCompany(role,companyId,loginCompanyId,loginUserType);
+    public MessageResponse approveRequestCompanyTeam(CustomUserDetails customUserDetails, Long companyTeamId,Long companyId) {
+        authorizeAdminOrCompanyAdmin(customUserDetails,companyId);
         CompanyTeam companyTeam = companyTeamRepository.readRequestCompanyTeam(companyTeamId);
         companyTeam.approveTeam();
         companyTeamRepository.save(companyTeam);
@@ -64,10 +65,10 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
 
     @Override
     @Transactional
-    public MessageResponse updateCompanyTeamName(String role, Long companyTeamId, Long companyId, UpdateTeamRequest updateTeamRequest,Long loginCompanyId,String loginUserType) {
-        getAdminAccessibleCompany(role,companyId,loginCompanyId,loginUserType);
+    public MessageResponse updateCompanyTeamName(CustomUserDetails customUserDetails, Long companyTeamId, Long companyId, UpdateTeamRequest updateTeamRequest) {
+        validateUserAffiliation(customUserDetails,companyId);
 
-        CompanyTeam companyTeam=validateCompanyTeamNotDeleted(findCompanyTeam(companyTeamId));
+        CompanyTeam companyTeam=validateCompanyTeamNotDeleted(isExistCompanyTeam(companyTeamId));
         companyTeam.updateTeamName(updateTeamRequest.getTeamName());
         companyTeamRepository.save(companyTeam);
         return MessageResponse.from("이름변경 변경이름 :" + updateTeamRequest.getTeamName());
@@ -75,10 +76,10 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
 
     @Override
     @Transactional
-    public MessageResponse deleteCompanyTeam(String role, Long companyTeamId, Long companyId,Long loginCompanyId,String loginUserType) {
-        getAdminAccessibleCompany(role,companyId,loginCompanyId,loginUserType);
+    public MessageResponse deleteCompanyTeam(CustomUserDetails customUserDetails, Long companyTeamId, Long companyId) {
+        validateUserAffiliation(customUserDetails,companyId);
 
-        CompanyTeam companyTeam=validateCompanyTeamNotDeleted(findCompanyTeam(companyTeamId));
+        CompanyTeam companyTeam=validateCompanyTeamNotDeleted(isExistCompanyTeam(companyTeamId));
         companyTeam.deleteTeam();
         companyTeamRepository.save(companyTeam);
         return MessageResponse.from("삭제완료");
@@ -86,41 +87,41 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
 
     @Override
     @Transactional
-    public MessageResponse rejectRequestCompanyTeam(String role, Long companyTeamId, Long companyId,Long loginCompanyId,String loginUserType) {
-        getAdminAccessibleCompany(role,companyId,loginCompanyId,loginUserType);
+    public MessageResponse rejectRequestCompanyTeam(CustomUserDetails customUserDetails, Long companyTeamId, Long companyId) {
+        validateUserAffiliation(customUserDetails,companyId);
+
         CompanyTeam companyTeam = companyTeamRepository.readRequestCompanyTeam(companyTeamId);
         companyTeam.rejectTeam();
         companyTeamRepository.save(companyTeam);
         return MessageResponse.from("거절");
     }
-    private boolean isAdmin(String role) {
+
+    private void authorizeAdminOrCompanyAdmin(CustomUserDetails customUserDetails, Long companyId) {
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
+            return;
+        }
+
+        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, customUserDetails.userId());
+        if (loginUser == null || !loginUser.getType().getAuthority().equals("ADMIN")) {
+            throw new IllegalArgumentException("권한없음");
+        }
+    }
+    private void validateUserAffiliation(CustomUserDetails customUserDetails , Long companyId) {
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
+            return;
+        }
+        CompanyUser loginUser = companyUserRepository.isApprovalUser(companyId, customUserDetails.userId());
+        if (loginUser == null) {
+            throw new IllegalArgumentException("권한없음");
+        }
+    }
+    private boolean isAdmin(String role){
         return role.equals("ADMIN");
     }
-    private void getAdminAccessibleCompany(String role, Long companyId, Long loginCompanyId, String loginCompanyType) {
-        if(!isAdmin(role)){
-            verifyAdminAffiliation(companyId, loginCompanyId,loginCompanyType);
-        }
-    }
-    private void verifyAdminAffiliation(Long companyId,Long loginCompanyId,String loginCompanyType) {
-        if(!Objects.equals(companyId, loginCompanyId) || !Objects.equals(loginCompanyType, "ADMIN")){
-            throw new IllegalAccessError("권한이 없습니다.");
-        }
-    }
-    private void getReadableCompany(String role, Long companyId,Long loginCompanyId) {
-        if (!isAdmin(role)) {
-            verifyUserAffiliation(companyId,loginCompanyId);
-        }
-    }
-    private void verifyUserAffiliation(Long companyId,Long loginCompanyId) {
-        if (!Objects.equals(companyId, loginCompanyId)) {
-            throw new IllegalAccessError("권한이 없습니다.");
-        }
-    }
-    private CompanyTeam findCompanyTeam(Long companyTeamId) {
+    public CompanyTeam isExistCompanyTeam(Long companyTeamId) {
         return companyTeamRepository.findById(companyTeamId)
-                .orElseThrow(() -> new NoSuchElementException("해당 ID로 팀을 찾을 수 없습니다: " + companyTeamId));
+                .orElseThrow(() -> new NoSuchElementException("No user found with id " + companyTeamId));
     }
-
     public CompanyTeam validateCompanyTeamNotDeleted(CompanyTeam companyTeam) {
         if (companyTeam.isDeleted()) {
             throw new NoSuchElementException("User with id " + companyTeam.getCompanyTeamId() + " is deleted.");

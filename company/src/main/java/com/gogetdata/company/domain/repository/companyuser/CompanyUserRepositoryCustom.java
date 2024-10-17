@@ -7,6 +7,8 @@ import java.util.Collection;
 import java.util.List;
 
 public interface CompanyUserRepositoryCustom {
+    Company getCompanyUserAdmin(Long userId, Long companyId);
+    Company getCompanyUser(Long userId,Long companyId);
     List<CompanyUser> selectWaitingForApprovalUsers(Collection<Long> companyUserId,Long companyId);
     List<CompanyUser> ApprovalUsers(Long companyId);
     CompanyUser ApprovalUser(Long companyId,Long companyUserId);

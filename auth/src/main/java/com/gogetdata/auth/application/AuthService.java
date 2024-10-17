@@ -52,7 +52,7 @@ public class AuthService {
 
     public AuthResponse signIn(signInRequest signInRequest) {
         User user =userRepository.findByemail(signInRequest.getEmail())
-                .orElseThrow(()->new IllegalArgumentException("Invalid email"));
+                .orElseThrow(()->new IllegalArgumentException("존재하지않음"));
         if(!passwordEncoder.matches(signInRequest.getPassword(),user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 다름");
         }
@@ -62,8 +62,8 @@ public class AuthService {
         return AuthResponse.of(BEARER_PREFIX + Jwts.builder()
                 .claim("user_id", userId)
                 .claim("user_role",role)
-                .claim("company_id",companyId)
-                .claim("company_role",companyRole)
+                .claim("company_id",companyId == null ? "null":companyId)
+                .claim("company_role",companyRole == null ? "null":companyRole)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + accessExpiration))
                 .signWith(secretKey, SignatureAlgorithm.HS512)

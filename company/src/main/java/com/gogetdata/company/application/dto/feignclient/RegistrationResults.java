@@ -12,7 +12,7 @@ import lombok.Setter;
 public class RegistrationResults {
     private Long UserId;
     private Long companyUserId;
-    private boolean isSuccess;
+    private Boolean isSuccess;
     private String type;
     private String userName;
 }

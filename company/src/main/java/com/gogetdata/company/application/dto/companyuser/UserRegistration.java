@@ -14,5 +14,5 @@ import java.util.List;
 @NoArgsConstructor
 public class UserRegistration {
     private Long companyId;
-    private List<UserRegistrationRequest> userRegistrationList = new ArrayList<>();
+    private List<UserRegistrationRequest> userRegistrationRequestList = new ArrayList<>();
 }

@@ -13,5 +13,5 @@ public class RegistrationResult {
     Long userId;
     String userName;
     String email;
-    boolean isSuccess;
+    Boolean isSuccess;
 }

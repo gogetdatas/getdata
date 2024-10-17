@@ -11,6 +11,6 @@ public interface UserService {
     List<RegistrationResults> registerUsers(UserRegistration userRegistration);
     Boolean deleteCompanyUser(Long userId);
     RegistrationResult checkUser(Long userId);
-    MyInfoResponse readUser(Long userId);
+    MyInfoResponse getMyInfo(Long userId);
     RegistrationResult registerUser(Long userId,Long companyId);
 }

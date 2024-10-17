@@ -4,13 +4,14 @@ import com.gogetdata.company.application.dto.company.CompanyResponse;
 import com.gogetdata.company.application.dto.company.CreateCompanyRequest;
 import com.gogetdata.company.application.dto.MessageResponse;
 import com.gogetdata.company.application.dto.company.UpdateCompanyRequest;
+import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 
 public interface CompanyService {
-    CompanyResponse createCompany(Long userId,String role, CreateCompanyRequest createCompanyRequest);
+    CompanyResponse createCompany(CustomUserDetails customUserDetails, CreateCompanyRequest createCompanyRequest);
 
-    CompanyResponse readCompany(String role,Long loginCompanyId, Long companyId);
+    CompanyResponse readCompany(CustomUserDetails customUserDetails, Long companyId);
 
-    CompanyResponse updateCompany(String role, Long companyId, UpdateCompanyRequest updateCompanyRequest,Long loginCompanyId, String loginCompanyType);
+    CompanyResponse updateCompany(CustomUserDetails customUserDetails, Long companyId, UpdateCompanyRequest updateCompanyRequest);
 
-    MessageResponse deleteCompany(String role, Long companyId,Long loginCompanyId, String loginCompanyType);
+    MessageResponse deleteCompany(CustomUserDetails customUserDetails ,Long companyId);
 }
