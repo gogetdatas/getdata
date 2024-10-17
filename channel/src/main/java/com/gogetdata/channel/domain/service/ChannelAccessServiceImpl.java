@@ -1,5 +1,6 @@
 package com.gogetdata.channel.domain.service;
 
+import com.gogetdata.channel.application.ChannelAccessResponse;
 import com.gogetdata.channel.application.ChannelAccessService;
 import com.gogetdata.channel.application.CompanyTeamService;
 import com.gogetdata.channel.application.dto.MessageResponse;
@@ -28,8 +29,7 @@ public class ChannelAccessServiceImpl implements ChannelAccessService {
                                               Long companyTeamId,
                                               Long companyId,
                                               Long channelId) {
-        getAccessibleAdmin(customUserDetails , companyId);
-        getAccessibleAdminChannel(companyTeamId,channelId);
+        getAccessible(customUserDetails , companyId,companyTeamId,channelId);
         List<ChannelAccess> channelAccesses = new ArrayList<>();
         for (Long teamId :  teamRequests.getCompanyTeamId()) {
             ChannelAccess channelAccess = ChannelAccess.create(channelId,teamId, ChannelAccessType.READ);
@@ -46,8 +46,7 @@ public class ChannelAccessServiceImpl implements ChannelAccessService {
             Long companyId,
             Long channelId,
             Long revokeCompanyTeamId) {
-        getAccessibleAdmin(customUserDetails , companyId);
-        getAccessibleAdminChannel(companyTeamId,channelId);
+        getAccessible(customUserDetails , companyId,companyTeamId,channelId);
         ChannelAccess channelAccess=channelAccessRepository.findAccessChannel(revokeCompanyTeamId,channelId);
         channelAccess.delete();
         channelAccessRepository.save(channelAccess);
@@ -62,33 +61,46 @@ public class ChannelAccessServiceImpl implements ChannelAccessService {
             Long companyTeamId,
             Long companyId,
             Long channelId) {
-        getAccessibleAdmin(customUserDetails , companyId);
-        getAccessibleAdminChannel(companyTeamId,channelId);
+        getAccessible(customUserDetails , companyId,companyTeamId,channelId);
         ChannelAccess channelAccess=channelAccessRepository.findAccessChannel(updateChannelAccessRequest.getCompanyTeamId(),channelId);
         channelAccess.updateType(updateChannelAccessRequest.getUpdateType());
         channelAccessRepository.save(channelAccess);
         return MessageResponse.from("권한변경");
+    }
+
+    @Override
+    public List<ChannelAccessResponse> readsChannelAccess(CustomUserDetails customUserDetails, Long companyTeamId, Long companyId, Long channelId) {
+        getAccessible(customUserDetails , companyId,companyTeamId,channelId);
+        List<ChannelAccessResponse> channelAccessResponses = new ArrayList<>();
+        List<ChannelAccess> channelAccesses=channelAccessRepository.findsAccessChannel(channelId);
+        for (ChannelAccess channelAccess : channelAccesses) {
+            channelAccessResponses.add(ChannelAccessResponse.from(channelAccess));
+        }
+        return channelAccessResponses;
+    }
+
+    private void getAccessible(CustomUserDetails customUserDetails, Long companyId,Long companyTeamId ,Long channelId) {
+        if (isAdmin(customUserDetails.getAuthorities().toString())) {
+            return;
+        }
+        if(!isCompanyAdmin(customUserDetails.companyId(),companyId,customUserDetails.getCompanyType())) {
+            getAccessibleAdminChannel(companyTeamId,channelId);
+        }
+
     }
     private void getAccessibleAdminChannel(Long companyTeamId,Long channelId) {
         if(!channelAccessRepository.findAccessChannel(companyTeamId,channelId).getChannelAccessType().getAuthority().equals("ADMIN")){
             throw new IllegalAccessError("권한없음");
         }
     }
-    private void getAccessibleAdmin(CustomUserDetails customUserDetails, Long companyId) {
-        if (isAdmin(customUserDetails.getAuthorities().toString())) {
-            return;
-        }
-        isCompanyAdmin(customUserDetails.companyId(),companyId,customUserDetails.getCompanyType());
-    }
+
     private boolean isAdmin(String role) {
         return role.equals("ADMIN");
     }
-    private void isCompanyAdmin(Long companyId, Long loginCompanyId, String companyType) {
+    private boolean isCompanyAdmin(Long companyId, Long loginCompanyId, String companyType) {
         if (Objects.equals(loginCompanyId, companyId)) {
-            if(companyType.equals("ADMIN")){
-                return;
-            }
+            return companyType.equals("ADMIN");
         }
-        throw new IllegalAccessError("권한없음");
+        return false;
     }
 }

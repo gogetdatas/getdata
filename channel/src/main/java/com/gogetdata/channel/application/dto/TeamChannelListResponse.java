@@ -8,5 +8,4 @@ public record TeamChannelListResponse(Long teamId,List<ChannelResponse> channelR
                 channelResponses
         );
     }
-
 }

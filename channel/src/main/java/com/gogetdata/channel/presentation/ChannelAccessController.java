@@ -1,5 +1,6 @@
 package com.gogetdata.channel.presentation;
 
+import com.gogetdata.channel.application.ChannelAccessResponse;
 import com.gogetdata.channel.application.ChannelAccessService;
 import com.gogetdata.channel.application.dto.MessageResponse;
 import com.gogetdata.channel.application.dto.TeamRequest;
@@ -13,6 +14,8 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/channels")
@@ -35,7 +38,7 @@ public class ChannelAccessController {
     @PostMapping("/{channelId}/access/grant")
     public ResponseEntity<MessageResponse> grantChannelAccess(
             @PathVariable Long channelId,
-            @Valid @RequestBody TeamRequest teamRequest,
+            @RequestBody TeamRequest teamRequest,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestParam Long companyTeamId,
             @RequestParam Long companyId) {
@@ -83,13 +86,23 @@ public class ChannelAccessController {
     @PutMapping("/{channelId}/access")
     public ResponseEntity<MessageResponse> updateChannelAccessType(
             @PathVariable Long channelId,
-            @Valid @RequestBody UpdateChannelAccessRequest updateChannelAccessRequest,
+            @RequestBody UpdateChannelAccessRequest updateChannelAccessRequest,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @RequestParam Long companyTeamId,
             @RequestParam Long companyId) {
 
         MessageResponse response = channelAccessService.updateChannelAccessType(
                 updateChannelAccessRequest, customUserDetails, companyTeamId, companyId, channelId);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+    @PutMapping("/{channelId}/access/{companyId}/{companyTeamId}/{channelId}")
+    public ResponseEntity<List<ChannelAccessResponse>> readsChannelAccess(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long companyId,
+            @PathVariable Long companyTeamId,
+            @PathVariable Long channelId) {
+        List<ChannelAccessResponse> response = channelAccessService.readsChannelAccess(customUserDetails, companyTeamId, companyId, channelId);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
