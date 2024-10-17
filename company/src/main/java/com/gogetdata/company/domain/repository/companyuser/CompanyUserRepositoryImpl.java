@@ -124,4 +124,27 @@ public class CompanyUserRepositoryImpl implements CompanyUserRepositoryCustom {
                 .fetchOne();
     }
 
+    @Override
+    public List<Company> getSearchCompany(String companyName) {
+        return queryFactory
+                .selectFrom(company)
+                .where(
+                        company.isDeleted.eq(false)
+                        .and(company.companyName.contains(companyName))
+                )
+                .fetch();
+    }
+
+    @Override
+    public List<CompanyUser> getSearchApprovalUsers(Long companyId, String companyUserName) {
+         return queryFactory.selectFrom(companyUser)
+                .where(
+                        companyUser.isDeleted.eq(false)
+                                .and(companyUser.status.eq(AffiliationStatus.APPROVED))
+                                .and(companyUser.companyId.eq(companyId))
+                                .and(companyUser.userName.eq(companyUserName))
+                )
+                .fetch();
+
+    }
 }

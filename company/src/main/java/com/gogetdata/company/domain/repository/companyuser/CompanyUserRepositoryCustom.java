@@ -16,4 +16,7 @@ public interface CompanyUserRepositoryCustom {
     CompanyUser waitingForApprovalUser(Long companyId,Long companyUserId);
     CompanyUser isApprovalUser(Long companyId,Long userId);
 
+    List<Company> getSearchCompany(String companyName);
+
+    List<CompanyUser> getSearchApprovalUsers(Long companyId, String companyUserName);
 }

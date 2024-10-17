@@ -2,6 +2,7 @@ package com.gogetdata.company.domain.service;
 
 import com.gogetdata.company.application.CompanyTeamService;
 import com.gogetdata.company.application.dto.MessageResponse;
+import com.gogetdata.company.application.dto.companyteam.CompanyTeamResponse;
 import com.gogetdata.company.application.dto.companyteam.RequestCompanyTeamRequest;
 import com.gogetdata.company.application.dto.companyteam.RequestCompanyTeamResponse;
 import com.gogetdata.company.application.dto.companyteam.UpdateTeamRequest;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -94,6 +96,17 @@ public class CompanyTeamServiceImpl implements CompanyTeamService {
         companyTeam.rejectTeam();
         companyTeamRepository.save(companyTeam);
         return MessageResponse.from("거절");
+    }
+
+    @Override
+    public List<CompanyTeamResponse> searchCompanyTeam(CustomUserDetails customUserDetails,Long companyId, String companyTeamName) {
+        validateUserAffiliation(customUserDetails,companyId);
+        List<CompanyTeamResponse> companyTeamResponses = new ArrayList<>();
+        List<CompanyTeam> companyTeams = companyTeamRepository.getSearchCompanyTeam(companyId,companyTeamName);
+        for (CompanyTeam companyTeam : companyTeams) {
+            companyTeamResponses.add(CompanyTeamResponse.from(companyTeam));
+        }
+        return companyTeamResponses;
     }
 
     private void authorizeAdminOrCompanyAdmin(CustomUserDetails customUserDetails, Long companyId) {

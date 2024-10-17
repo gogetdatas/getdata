@@ -2,9 +2,11 @@ package com.gogetdata.company.presentation;
 
 import com.gogetdata.company.application.CompanyTeamService;
 import com.gogetdata.company.application.dto.MessageResponse;
+import com.gogetdata.company.application.dto.companyteam.CompanyTeamResponse;
 import com.gogetdata.company.application.dto.companyteam.RequestCompanyTeamRequest;
 import com.gogetdata.company.application.dto.companyteam.RequestCompanyTeamResponse;
 import com.gogetdata.company.application.dto.companyteam.UpdateTeamRequest;
+import com.gogetdata.company.domain.entity.CompanyTeam;
 import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -58,6 +60,13 @@ public class CompanyTeamController {
                                                              @PathVariable Long companyId ,
                                                              @PathVariable Long companyTeamId) {
         MessageResponse response = companyTeamService.rejectRequestCompanyTeam(customUserDetails,companyTeamId,companyId);
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/{companyId}/teams")
+    public ResponseEntity<List<CompanyTeamResponse>> searchCompanyTeam(@AuthenticationPrincipal CustomUserDetails customUserDetails,
+                                                                       @PathVariable Long companyId ,
+                                                                       @RequestParam String companyTeamName) {
+        List<CompanyTeamResponse> response = companyTeamService.searchCompanyTeam(customUserDetails,companyId,companyTeamName);
         return ResponseEntity.ok(response);
     }
 }

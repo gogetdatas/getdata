@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/companies")
 
@@ -41,6 +43,11 @@ public class CompanyController {
     public ResponseEntity<MessageResponse> deleteCompany(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                          @PathVariable Long companyId) {
         MessageResponse response = companyService.deleteCompany(customUserDetails,companyId);
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/search")
+    public ResponseEntity<List<CompanyResponse>> searchCompany(@RequestParam String companyName) {
+        List<CompanyResponse> response = companyService.searchCompany(companyName);
         return ResponseEntity.ok(response);
     }
 }

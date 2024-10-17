@@ -7,4 +7,6 @@ import java.util.List;
 public interface CompanyTeamRepositoryCustom {
     List<CompanyTeam> readRequestCompanyTeams(Long companyId);
     CompanyTeam readRequestCompanyTeam(Long companyTeamId);
+
+    List<CompanyTeam> getSearchCompanyTeam(Long companyId, String companyTeamName);
 }

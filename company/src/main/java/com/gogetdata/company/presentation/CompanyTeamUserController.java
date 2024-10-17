@@ -77,5 +77,12 @@ public class CompanyTeamUserController {
         String response = companyTeamUserService.getUserInTeam(companyTeamId,userId);
         return ResponseEntity.ok(response);
     }
-
+    @GetMapping("/{companyId}/teams/{companyTeamId}")
+    public ResponseEntity<List<CompanyTeamUserResponse>> searchTeamUser(@AuthenticationPrincipal CustomUserDetails customUserDetails,
+                                                 @PathVariable Long companyId,
+                                                 @PathVariable Long companyTeamId,
+                                                 @RequestParam String userName) {
+        List<CompanyTeamUserResponse> response = companyTeamUserService.searchTeamUser(customUserDetails,companyId,companyTeamId,userName);
+        return ResponseEntity.ok(response);
+    }
 }

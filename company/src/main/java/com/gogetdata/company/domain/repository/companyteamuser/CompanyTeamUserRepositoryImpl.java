@@ -140,4 +140,16 @@ public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryC
                 )
                 .fetch();
     }
+
+    @Override
+    public List<CompanyTeamUser> getSearchTeamUser(Long companyTeamId, String userName) {
+        return queryFactory.select(companyTeamUser)
+                .from(companyTeamUser)
+                .where(companyTeamUser.companyTeamId.eq(companyTeamId)
+                        .and(companyTeamUser.companyTeamUserStatus.eq(CompanyTeamUserStatus.APPROVED))
+                        .and(companyTeamUser.isDeleted.eq(false))
+                        .and(companyTeamUser.userName.contains(userName))
+                )
+                .fetch();
+    }
 }

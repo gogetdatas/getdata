@@ -36,4 +36,17 @@ public class CompanyTeamRepositoryImpl implements CompanyTeamRepositoryCustom {
                 )
                 .fetchOne();
     }
+
+    @Override
+    public List<CompanyTeam> getSearchCompanyTeam(Long companyId, String companyTeamName) {
+        return queryFactory
+                .selectFrom(companyTeam)
+                .where(
+                        companyTeam.companyId.eq(companyId)
+                                .and(companyTeam.isDeleted.eq(false))
+                                .and(companyTeam.companyTeamStatus.eq(CompanyTeamStatus.APPROVED))
+                                .and(companyTeam.companyTeamName.contains(companyTeamName))
+                )
+                .fetch();
+    }
 }

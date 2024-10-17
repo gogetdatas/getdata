@@ -1,6 +1,7 @@
 package com.gogetdata.company.application;
 
 import com.gogetdata.company.application.dto.MessageResponse;
+import com.gogetdata.company.application.dto.companyteam.CompanyTeamResponse;
 import com.gogetdata.company.application.dto.companyteam.RequestCompanyTeamRequest;
 import com.gogetdata.company.application.dto.companyteam.RequestCompanyTeamResponse;
 import com.gogetdata.company.application.dto.companyteam.UpdateTeamRequest;
@@ -15,8 +16,7 @@ public interface CompanyTeamService {
     MessageResponse updateCompanyTeamName(CustomUserDetails customUserDetails , Long companyTeamId , Long companyId, UpdateTeamRequest updateTeamRequest);  // 이름변경
     MessageResponse deleteCompanyTeam(CustomUserDetails customUserDetails , Long companyTeamId , Long companyId);      // 삭제
     MessageResponse rejectRequestCompanyTeam(CustomUserDetails customUserDetails ,Long companyTeamId,Long companyId);       // 거절
-                                                                                                                // 회사 팀 조회
-
+    List<CompanyTeamResponse> searchCompanyTeam(CustomUserDetails customUserDetails,Long companyId,String companyTeamName); // 팀 검색
 }
 
 

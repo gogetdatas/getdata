@@ -70,4 +70,11 @@ public class CompanyUserController {
         List<CompanyWaitingUserResponse> response = companyUserService.readsRequestCompanyUser(customUserDetails,companyId);
         return ResponseEntity.ok(response);
     }
+    @GetMapping("/{companyId}/search")
+    public ResponseEntity<List<CompanyUserResponse>> searchCompanyUser(@AuthenticationPrincipal CustomUserDetails customUserDetails,
+                                                                                    @PathVariable Long companyId,
+                                                                                    @RequestParam String CompanyUserName) {
+        List<CompanyUserResponse> response = companyUserService.searchCompanyUser(customUserDetails,companyId,CompanyUserName);
+        return ResponseEntity.ok(response);
+    }
 }
