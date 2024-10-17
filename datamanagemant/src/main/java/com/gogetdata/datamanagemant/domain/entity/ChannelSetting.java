@@ -1,4 +1,5 @@
-package com.gogetdata.channel.domain.entity;
+package com.gogetdata.datamanagemant.domain.entity;
+
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;

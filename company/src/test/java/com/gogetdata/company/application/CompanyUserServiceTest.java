@@ -204,7 +204,7 @@ class CompanyUserServiceTest {
 
             RegistrationResult result = new RegistrationResult(customUserDetails.userId(), "abc", "testuser@example.com", true);
             MyInfoResponse myInfo = new MyInfoResponse(customUserDetails.userId(),"user1","user1@email.com",false);
-            given(userService.readUser(customUserDetails.userId())).willReturn(myInfo);
+            given(userService.getMyInfo(customUserDetails.userId())).willReturn(myInfo);
 
             CompanyUser companyUser = new CompanyUser(1L, companyId, customUserDetails.userId(), AffiliationStatus.PENDING, CompanyUserType.UNASSIGN, myInfo.getUserName(), myInfo.getEmail());
             // when

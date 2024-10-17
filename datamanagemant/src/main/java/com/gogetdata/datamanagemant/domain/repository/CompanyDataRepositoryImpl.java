@@ -1,196 +1,246 @@
 package com.gogetdata.datamanagemant.domain.repository;
 
-import com.gogetdata.datamanagemant.application.dto.data.QueryRequest;
 import com.gogetdata.datamanagemant.application.dto.data.QueryResponse;
+import com.gogetdata.datamanagemant.domain.entity.ChannelSetting;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
-public class CompanyDataRepositoryImpl implements CompanyDataRepositoryCustom{
+@Repository
+public class CompanyDataRepositoryImpl implements CompanyDataRepositoryCustom {
+
     private final MongoTemplate mongoTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(CompanyDataRepositoryImpl.class);
+
     @Override
-    public List<QueryResponse> findChannelData(QueryRequest queryRequest,Long companyId) {
-        Criteria criteria = new Criteria();
+    @Transactional
+    public List<QueryResponse> findChannelData(ChannelSetting channelSetting, Long companyId) {
+        // 1. 필터링 기준(criteria) 설정
+        Criteria criteria = buildCriteria(channelSetting, companyId);
 
-        criteria = criteria.and("type").is(queryRequest.getType());
-        criteria = criteria.and("companyId").is(companyId);
-
-        if (queryRequest.getSubtype() != null) {
-            criteria = criteria.and("subtype").is(queryRequest.getSubtype());
-            criteria = criteria.and("keyHash").is(queryRequest.getHashKey());
-        }
-        Aggregation aggregation;
-        if (queryRequest.isAggregates()) {
-            aggregation = buildAggregationWithAggregates(criteria, queryRequest);
+        // 2. 집계가 활성화되어 있고, 필터가 존재하는 경우 집계 파이프라인 구성 및 실행
+        if (channelSetting.isAggregates()
+                && channelSetting.getFilters() != null
+                && channelSetting.getFilters().getAggregates() != null) {
+            Aggregation aggregation = buildAggregationWithAggregates(channelSetting, criteria);
+            logger.debug("Executing Aggregation Pipeline: {}", aggregation.toString());
             AggregationResults<Map> results = mongoTemplate.aggregate(aggregation, "company_data", Map.class);
-            List<Map> mappedResults = results.getMappedResults();
-            return mappedResults.stream()
+            return results.getMappedResults().stream()
                     .map(map -> QueryResponse.builder().data(map).build())
-                    .toList();
+                    .collect(Collectors.toList());
         } else {
-            return buildAggregationWithoutAggregates(criteria,queryRequest);
+            // 3. 집계가 비활성화된 경우 단순 조회 실행
+            return buildAggregationWithoutAggregates(channelSetting, criteria);
         }
     }
-    private Aggregation buildAggregationWithAggregates(Criteria criteria, QueryRequest queryRequest) {
-        // Match Stage: 필터링
-        MatchOperation matchStage = Aggregation.match(criteria);
 
-        // Group Stage: 그룹화 기준 설정
-        QueryRequest.Aggregates groupFilters = queryRequest.getFilters() != null
-                ? queryRequest.getFilters().getAggregates()
-                : null;
 
-        GroupOperation groupStage;
-        if (groupFilters != null && groupFilters.getGroup_by() != null && !groupFilters.getGroup_by().isEmpty()) {
-            List<String> groupByFields = groupFilters.getGroup_by();
-            groupStage = Aggregation.group(groupByFields.toArray(new String[0]));
-        } else {
-            // 그룹화 기준이 없으면 전체를 하나의 그룹으로 묶음
-            groupStage = Aggregation.group().first("type").as("type");
+    private Criteria buildCriteria(ChannelSetting channelSetting, Long companyId) {
+        Criteria criteria = new Criteria();
+        criteria = criteria.and("type").is(channelSetting.getType());
+        criteria = criteria.and("companyId").is(companyId);
+
+        if (channelSetting.getSubtype() != null) {
+            criteria = criteria.and("subtype").is(channelSetting.getSubtype());
+            criteria = criteria.and("keyHash").is(channelSetting.getSelectKeyHash());
         }
 
-        // AggregatesFilter: 조건부 집계 추가
-        List<QueryRequest.AggregatesFilter> aggregatesFilters = queryRequest.getFilters() != null
-                ? queryRequest.getFilters().getAggregatesfilter()
-                : null;
+        return criteria;
+    }
 
+
+    private Aggregation buildAggregationWithAggregates(ChannelSetting channelSetting, Criteria criteria) {
+        List<AggregationOperation> operations = new ArrayList<>();
+
+        // 1. Match Stage: 필터링 조건 적용
+        operations.add(Aggregation.match(criteria));
+
+        // 2. Group Stage: groupBy 필드와 집계 필터에 따라 그룹화 및 집계
+        ChannelSetting.Aggregates aggregatesConfig = channelSetting.getFilters().getAggregates();
+        List<String> groupByFields = aggregatesConfig.getGroupBy().stream()
+                .map(this::resolveFieldPath) // 자동 변환 적용
+                .collect(Collectors.toList());
+
+        // 그룹화 필드가 없으면 예외 발생
+        if (groupByFields.isEmpty()) {
+            throw new IllegalArgumentException("groupBy fields cannot be null or empty");
+        }
+
+        // 그룹화 필드들을 기준으로 그룹화
+        GroupOperation groupOperation = Aggregation.group(groupByFields.toArray(new String[0]));
+
+        // 집계 필터에 따라 다양한 집계 연산 추가
+        List<ChannelSetting.AggregatesFilter> aggregatesFilters = channelSetting.getFilters().getAggregatesFilter();
         if (aggregatesFilters != null && !aggregatesFilters.isEmpty()) {
-            for (QueryRequest.AggregatesFilter filter : aggregatesFilters) {
-                String type = filter.getType();   // 집계 타입 (예: COUNT)
-                List<QueryRequest.CaseWhen> caseWhens = filter.getCase_when();
+            for (ChannelSetting.AggregatesFilter filter : aggregatesFilters) {
+                String field = resolveFieldPath(filter.getField()); // 자동 변환 적용
+                String type = filter.getType().toUpperCase();
 
-                for (QueryRequest.CaseWhen caseWhen : caseWhens) {
-                    String whenCondition = caseWhen.getWhen(); // 예: "isget = 1"
-                    String thenAlias = caseWhen.getThen();     // 예: "count_isget_1"
-
-                    // 조건부 집계 표현식 생성
-                    AggregationExpression conditionalExpression = ConditionalOperators
-                            .when(buildMongoCondition(whenCondition))
-                            .then(1)
-                            .otherwise(0);
-
-                    switch (type.toUpperCase()) {
-                        case "COUNT":
-                            groupStage = groupStage.sum(conditionalExpression).as(thenAlias);
-                            break;
-                        // 다른 집계 타입(CALCULATION, AVERAGE 등)도 추가 가능
-                        default:
-                            throw new UnsupportedOperationException("Unsupported aggregate type: " + type);
-                    }
+                switch (type) {
+                    case "COUNT":
+                        if (filter.getCaseWhen() != null && !filter.getCaseWhen().isEmpty()) {
+                            // 조건부 카운트 (CASE WHEN)
+                            for (ChannelSetting.CaseWhen caseWhen : filter.getCaseWhen()) {
+                                Criteria caseCriteria = parseCaseWhen(caseWhen.getWhen());
+                                AggregationExpression conditionalExpression = ConditionalOperators
+                                        .when(caseCriteria)
+                                        .then(1)
+                                        .otherwise(0);
+                                groupOperation = groupOperation.sum(conditionalExpression).as(caseWhen.getThen());
+                            }
+                        } else {
+                            // 단순 카운트
+                            groupOperation = groupOperation.count().as("count");
+                        }
+                        break;
+                    case "SUM":
+                        groupOperation = groupOperation.sum(field).as(field + "_sum");
+                        break;
+                    case "AVERAGE":
+                        groupOperation = groupOperation.avg(field).as(field + "_avg");
+                        break;
+                    // 필요한 다른 집계 연산 추가 가능
+                    default:
+                        throw new IllegalArgumentException("Unsupported aggregate type: " + type);
                 }
             }
         }
 
-        // Sort Stage: 정렬 (옵션)
-        SortOperation sortStage = Aggregation.sort(Sort.by(Sort.Direction.ASC, "userid")); // 기본값
+        operations.add(groupOperation);
 
-        if (queryRequest.getFilters() != null && queryRequest.getFilters().getOrderBy() != null
-                && !queryRequest.getFilters().getOrderBy().isEmpty()) {
-            String orderBy = queryRequest.getFilters().getOrderBy();
-            String[] orderParts = orderBy.split(" ");
-            String sortField = orderParts[0];
-            Sort.Direction direction = Sort.Direction.ASC;
-            if (orderParts.length > 1 && orderParts[1].equalsIgnoreCase("DESC")) {
-                direction = Sort.Direction.DESC;
-            }
-            sortStage = Aggregation.sort(Sort.by(direction, sortField));
-        }
+        // 3. Projection Stage: 결과 필드 매핑
+        AggregationOperation projectionOperation = buildProjectionOperation(groupByFields, aggregatesFilters);
+        operations.add(projectionOperation);
 
-        // Projection Stage: 필요한 필드만 선택 (옵션)
-        ProjectionOperation projectStage = Aggregation.project();
-
-        if (groupFilters != null && groupFilters.getGroup_by() != null && !groupFilters.getGroup_by().isEmpty()) {
-            // 그룹화된 필드를 별도의 필드로 매핑
-            for (String groupField : groupFilters.getGroup_by()) {
-                projectStage = projectStage.and("_id." + groupField).as(groupField);
-            }
-        } else {
-            // 기본 그룹화 시 타입 필드를 포함
-            projectStage = projectStage.and("_id.type").as("type");
-        }
-
-        // 동적으로 집계 필드를 추가
-        if (aggregatesFilters != null && !aggregatesFilters.isEmpty()) {
-            for (QueryRequest.AggregatesFilter filter : aggregatesFilters) {
-                List<QueryRequest.CaseWhen> caseWhens = filter.getCase_when();
-                for (QueryRequest.CaseWhen caseWhen : caseWhens) {
-                    String thenAlias = caseWhen.getThen();
-                    projectStage = projectStage.and(thenAlias).as(thenAlias);
-                }
-            }
+        // 4. Sort Stage: orderBy 조건에 따라 정렬
+        String orderBy = channelSetting.getFilters().getOrderBy();
+        AggregationOperation sortOperation = buildSortOperation(orderBy);
+        if (sortOperation != null) {
+            operations.add(sortOperation);
         }
 
         // Aggregation Pipeline 구성
+        Aggregation aggregation = Aggregation.newAggregation(operations);
 
-        return Aggregation.newAggregation(
-                matchStage,
-                groupStage,
-                sortStage,
-                projectStage
-        );
+        return aggregation;
     }
 
-    /**
-     * 단순 조회를 위한 Query 객체를 기반으로 문서를 조회하고 결과를 반환합니다.
-     */
-    private List<QueryResponse> buildAggregationWithoutAggregates(Criteria criteria, QueryRequest queryRequest) {
-        // 1. Query 객체 생성 및 필터링 조건 설정
-        Query query = new Query(criteria);
 
-        // 2. 정렬 조건 추가 (옵션)
-        if (queryRequest.getFilters() != null && queryRequest.getFilters().getOrderBy() != null
-                && !queryRequest.getFilters().getOrderBy().isEmpty()) {
-            String orderBy = queryRequest.getFilters().getOrderBy();
-            String[] orderParts = orderBy.split(" ");
-            String sortField = orderParts[0];
-            Sort.Direction direction = Sort.Direction.ASC;
-            if (orderParts.length > 1 && orderParts[1].equalsIgnoreCase("DESC")) {
-                direction = Sort.Direction.DESC;
-            }
-            query.with(Sort.by(direction, sortField));
-        }
-        // 4. 단순 조회 실행
-        List<Map> mappedResults = mongoTemplate.find(query, Map.class, "company_data");
-
-        // 5. Map을 QueryResponse로 변환하여 반환
-        return mappedResults.stream()
-                .map(map -> QueryResponse.builder().data(map).build())
-                .toList();
-    }
-
-    /**
-     * when 조건을 기반으로 MongoDB의 $cond 표현식을 생성합니다.
-     *
-     * @param whenCondition 예: "isget = 1"
-     * @return 조건 표현식
-     */
-    private Criteria buildMongoCondition(String whenCondition) {
-        // 간단한 파싱 로직: "field = value"
+    private Criteria parseCaseWhen(String whenCondition) {
+        // 예: "action = '페이지 방문'"을 "action" 필드가 "페이지 방문"인 조건으로 변환
         String[] parts = whenCondition.split("=");
-        if (parts.length == 2) {
-            String field = parts[0].trim();
-            String valueStr = parts[1].trim();
-            Object value;
+        if (parts.length != 2) {
+            throw new IllegalArgumentException("Invalid caseWhen condition: " + whenCondition);
+        }
+        String field = parts[0].trim();
+        String value = parts[1].trim().replace("'", "");
+        return Criteria.where(field).is(value);
+    }
 
-            try {
-                value = Long.parseLong(valueStr);
-            } catch (NumberFormatException e) {
-                try {
-                    value = Double.parseDouble(valueStr);
-                } catch (NumberFormatException ex) {
-                    value = valueStr.replaceAll("\"", "");
+
+    private AggregationOperation buildSortOperation(String orderBy) {
+        if (orderBy == null || orderBy.isEmpty()) {
+            return null;
+        }
+        String[] orderParts = orderBy.split(" ");
+        String sortField = orderParts[0];
+        Sort.Direction direction = Sort.Direction.ASC;
+        if (orderParts.length > 1 && orderParts[1].equalsIgnoreCase("DESC")) {
+            direction = Sort.Direction.DESC;
+        }
+        return Aggregation.sort(Sort.by(direction, sortField));
+    }
+
+
+    private ProjectionOperation buildProjectionOperation(List<String> groupByFields,
+                                                         List<ChannelSetting.AggregatesFilter> aggregatesFilters) {
+        ProjectionOperation projection = Aggregation.project();
+
+        if (groupByFields.size() == 1) {
+            String groupByField = groupByFields.get(0);
+            String alias = decapitalize(getLastFieldName(groupByField));
+            // 그룹화 필드가 하나일 경우, _id는 해당 필드의 값
+            projection = projection.and("_id").as(alias);
+        } else {
+            for (String groupByField : groupByFields) {
+                String alias = decapitalize(getLastFieldName(groupByField));
+                projection = projection.and("_id." + groupByField).as(alias);
+            }
+        }
+
+        // 집계 결과 매핑
+        if (aggregatesFilters != null && !aggregatesFilters.isEmpty()) {
+            for (ChannelSetting.AggregatesFilter filter : aggregatesFilters) {
+                String type = filter.getType().toUpperCase();
+                String field = resolveFieldPath(filter.getField()); // 자동 변환 적용
+
+                switch (type) {
+                    case "COUNT":
+                        if (filter.getCaseWhen() != null && !filter.getCaseWhen().isEmpty()) {
+                            for (ChannelSetting.CaseWhen caseWhen : filter.getCaseWhen()) {
+                                projection = projection.and(caseWhen.getThen()).as(caseWhen.getThen());
+                            }
+                        } else {
+                            projection = projection.and("count").as("count");
+                        }
+                        break;
+                    case "SUM":
+                        projection = projection.and(field + "_sum").as(field + "_sum");
+                        break;
+                    case "AVERAGE":
+                        projection = projection.and(field + "_avg").as(field + "_avg");
+                        break;
+                    // 필요한 다른 집계 연산 추가 가능
+                    default:
+                        throw new IllegalArgumentException("Unsupported aggregate type in projection: " + type);
                 }
             }
-
-            return Criteria.where(field).is(value);
         }
-        throw new IllegalArgumentException("Invalid when condition: " + whenCondition);
+
+        return projection;
+    }
+
+
+    private List<QueryResponse> buildAggregationWithoutAggregates(ChannelSetting channelSetting, Criteria criteria) {
+        Query query = new Query(criteria);
+        List<Map> mappedResults = mongoTemplate.find(query, Map.class, "company_data");
+
+        return mappedResults.stream()
+                .map(map -> QueryResponse.builder().data(map).build())
+                .collect(Collectors.toList());
+    }
+
+
+    private String getLastFieldName(String fieldPath) {
+        String[] parts = fieldPath.split("\\.");
+        return parts[parts.length - 1];
+    }
+
+
+    private String decapitalize(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        return str.substring(0,1).toLowerCase() + str.substring(1);
+    }
+
+    private String resolveFieldPath(String field) {
+        if (field.startsWith("data.")) {
+            return field;
+        }
+        return "data." + field;
     }
 }

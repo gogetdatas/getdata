@@ -1,7 +1,6 @@
 package com.gogetdata.datamanagemant.presentation;
 
 import com.gogetdata.datamanagemant.application.DataManagementService;
-import com.gogetdata.datamanagemant.application.dto.data.QueryRequest;
 import com.gogetdata.datamanagemant.application.dto.data.QueryResponse;
 import com.gogetdata.datamanagemant.application.dto.types.KeySetResponse;
 import com.gogetdata.datamanagemant.application.dto.types.SubTypeResponse;
@@ -21,17 +20,16 @@ import java.util.List;
 
 public class DataManagementController {
     private final DataManagementService dataManagementService;
-
     /**
      * 채널 데이터를 조회하는 엔드포인트
      *
-     * @param queryRequest 클라이언트의 요청 데이터
+     * @param companyId , channelId 클라이언트의 요청 데이터
      * @return 조회된 데이터 리스트
      */
-    @PostMapping("/find/companies/{companyId}")
+    @GetMapping("/find/companies/{companyId}/channels/{channelId}")
     public ResponseEntity<List<QueryResponse>> findChannelData(
-             @RequestBody QueryRequest queryRequest,@PathVariable Long companyId) {
-        List<QueryResponse> responses = dataManagementService.findChannelData(queryRequest, companyId);
+             @PathVariable Long companyId,@PathVariable Long channelId) {
+        List<QueryResponse> responses = dataManagementService.findChannelData(channelId, companyId);
         return new ResponseEntity<>(responses, HttpStatus.OK);
     }
 
@@ -42,10 +40,10 @@ public class DataManagementController {
      * @param companyId         회사 ID
      * @return 타입 데이터
      */
-    @GetMapping("/types")
+    @GetMapping("/types/{companyId}")
     public ResponseEntity<TypeResponse> findType(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestParam Long companyId) {
+            @PathVariable Long companyId) {
         TypeResponse response = dataManagementService.findType(customUserDetails, companyId);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -58,11 +56,11 @@ public class DataManagementController {
      * @param companyId         회사 ID
      * @return 서브타입 데이터
      */
-    @GetMapping("/subtypes")
+    @GetMapping("/subtypes/{companyId}/{typeSetId}")
     public ResponseEntity<SubTypeResponse> findSubType(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestParam Long typeSetId,
-            @RequestParam Long companyId) {
+            @PathVariable Long typeSetId,
+            @PathVariable Long companyId) {
         SubTypeResponse response = dataManagementService.findSubType(customUserDetails, typeSetId, companyId);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -75,11 +73,11 @@ public class DataManagementController {
      * @param companyId         회사 ID
      * @return 키셋 데이터
      */
-    @GetMapping("/keysets")
+    @GetMapping("/keysets/{companyId}/{subTypeSetId}")
     public ResponseEntity<KeySetResponse> findKeySet(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestParam Long subTypeSetId,
-            @RequestParam Long companyId) {
+            @PathVariable Long subTypeSetId,
+            @PathVariable Long companyId) {
         KeySetResponse response = dataManagementService.findKeySet(customUserDetails, subTypeSetId, companyId);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

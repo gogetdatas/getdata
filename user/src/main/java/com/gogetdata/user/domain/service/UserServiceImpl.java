@@ -47,6 +47,7 @@ public class UserServiceImpl implements UserService {
 
 
     @Override
+    @Transactional
     public List<RegistrationResults> registrationUsers(UserRegistration userRegistration) {
         List<RegistrationResults> results = new ArrayList<>();
         for (UserRegistrationRequest registrationDto : userRegistration.getUserRegistrationRequestList()) {
@@ -80,6 +81,7 @@ public class UserServiceImpl implements UserService {
         User user = verify(userId);
         if(user.getCompanyId() == null){
             user.registration(companyId,"ADMIN");
+            userRepository.save(user);
             return RegistrationResult.from(user,true);
         }
         return RegistrationResult.from(null,false);

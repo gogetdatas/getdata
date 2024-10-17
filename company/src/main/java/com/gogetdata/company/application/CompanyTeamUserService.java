@@ -18,7 +18,6 @@ public interface CompanyTeamUserService {
     public List<CompanyTeamResponse> getMyTeams(CustomUserDetails customUserDetails);// 내 팀 조회
     public List<CompanyTeamUserResponse> getUsersInTeam(CustomUserDetails customUserDetails , Long companyTeamId);// 팀에 속한 유저조회
     public MessageResponse deleteUserFromTeam(CustomUserDetails customUserDetails , Long companyId , Long companyTeamId,Long companyTeamUserId);// 유저 삭제
-
     String getUserInTeam(Long companyTeamId, Long userId);
 
     // 유저 정보 업데이트 // 유저가 변경될때 유저 다 잡아서 바꿔버림

@@ -15,6 +15,7 @@ import com.gogetdata.company.domain.repository.company.CompanyRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
 import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +28,6 @@ public class CompanyServiceImpl implements CompanyService {
     private final CompanyRepository companyRepository;
     private final CompanyUserRepository companyUserRepository;
     private final UserService userService;
-
     @Override
     @Transactional
     public CompanyResponse createCompany(CustomUserDetails customUserDetails, CreateCompanyRequest createCompanyRequest) {
@@ -36,12 +36,13 @@ public class CompanyServiceImpl implements CompanyService {
                 createCompanyRequest.getCompanyName(),
                 UUID.randomUUID().toString()
         );
-        RegistrationResult result = userService.registerUser(customUserDetails.userId(),company.getCompanyId());
-        if (!result.isSuccess()) {
-            throw new IllegalAccessError("이미 소속되어 있습니다.");
-        }
         companyRepository.save(company);
-
+        System.out.println();
+        RegistrationResult result = userService.registerUser(customUserDetails.userId(),company.getCompanyId());
+        System.out.println();
+        if (!result.getIsSuccess()) {
+            throw new IllegalAccessError("이미 소속되어 있습니다.");
+            }
 
         CompanyUser companyUser = CompanyUser.create(
                 company.getCompanyId(),

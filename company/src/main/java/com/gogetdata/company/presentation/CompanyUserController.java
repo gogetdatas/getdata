@@ -15,7 +15,7 @@ import java.util.List;
 @RequestMapping("/companies")
 @RequiredArgsConstructor
 public class CompanyUserController {
-    private final CompanyUserService companyUserService; //  todo :  로그인한 유저가 속한 회사를 찾는 API
+    private final CompanyUserService companyUserService;
     @PostMapping("/{companyId}/users")
     public ResponseEntity<List<CompanyUserRegistrationResponse>> registerUserToCompany(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                                        @RequestBody List<UserRegistrationRequest> userRegistrationRequests,

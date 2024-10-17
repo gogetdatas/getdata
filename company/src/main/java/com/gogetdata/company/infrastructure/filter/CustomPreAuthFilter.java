@@ -13,6 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Objects;
 
 @Component
 @Slf4j
@@ -29,9 +30,9 @@ public class CustomPreAuthFilter extends OncePerRequestFilter {
             CustomUserDetails userDetails = new CustomUserDetails(
                     Long.parseLong(userId),
                     Collections.singletonList(authority),
-                    Long.parseLong(companyId),
+                    Objects.equals(companyId, "null") ? null:Long.parseLong(companyId),
                     companyType
-            );
+                    );
 
             UsernamePasswordAuthenticationToken authenticationToken =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

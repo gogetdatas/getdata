@@ -10,7 +10,7 @@ import java.util.List;
 import static com.gogetdata.company.domain.entity.QCompanyTeam.companyTeam;
 
 @RequiredArgsConstructor
-public class CompanyTeamRepositoryRepositoryImpl implements CompanyTeamRepositoryCustom {
+public class CompanyTeamRepositoryImpl implements CompanyTeamRepositoryCustom {
     private final JPAQueryFactory queryFactory;
 
     @Override

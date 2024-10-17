@@ -42,6 +42,7 @@ public class ChannelServiceImpl implements ChannelService {
                 .companyId(companyId)
                 .channelId(channel.getChannelId())
                 .type(createChannelRequest.getType())
+                .isAggregates(createChannelRequest.getIsAggregates())
                 .build();
         channelSettingRepository.save(channelSetting);
         return MessageResponse.from("채널생성");
@@ -56,6 +57,8 @@ public class ChannelServiceImpl implements ChannelService {
         ChannelSetting channelSetting = ChannelSetting.builder()
                 .companyId(companyId)
                 .channelId(channel.getChannelId())
+                .isAggregates(createChannelRequest.getIsAggregates())
+
                 .type(createChannelRequest.getType())
                 .subtype(createChannelRequest.getSubtype())
                 .selectKeyHash(createChannelRequest.getSelectKeyHash())
@@ -69,21 +72,23 @@ public class ChannelServiceImpl implements ChannelService {
     @Transactional
     public MessageResponse createChannelWithAggregation(CreateChannelWithAggregationRequest createChannelRequest,
                                                         CustomUserDetails customUserDetails, Long companyTeamId, Long companyId) {
-        getAccessibleAdmin(customUserDetails , companyId,companyTeamId);
-        Channel channel= saveChannel(createChannelRequest.getChannelName(),companyTeamId);
+        getAccessibleAdmin(customUserDetails, companyId, companyTeamId);
+        Channel channel = saveChannel(createChannelRequest.getChannelName(), companyTeamId);
+
         List<ChannelSetting.AggregatesFilter> entityAggregatesFilters = createChannelRequest.getFilters().getAggregatesFilter()
                 .stream()
                 .map(dtoFilter -> ChannelSetting.AggregatesFilter.builder()
                         .field(dtoFilter.getField())
                         .type(dtoFilter.getType())
                         .caseWhen(
-                                dtoFilter.getCaseWhen()
-                                        .stream()
-                                        .map(dtoCaseWhen -> ChannelSetting.CaseWhen.builder()
-                                                .when(dtoCaseWhen.getWhen())
-                                                .then(dtoCaseWhen.getThen())
-                                                .build())
-                                        .collect(Collectors.toList())
+                                dtoFilter.getCaseWhen() != null ?
+                                        dtoFilter.getCaseWhen()
+                                                .stream()
+                                                .map(dtoCaseWhen -> ChannelSetting.CaseWhen.builder()
+                                                        .when(dtoCaseWhen.getWhen())
+                                                        .then(dtoCaseWhen.getThen())
+                                                        .build())
+                                                .collect(Collectors.toList()) : null
                         )
                         .build())
                 .collect(Collectors.toList());
@@ -92,6 +97,7 @@ public class ChannelServiceImpl implements ChannelService {
                 .companyId(companyId)
                 .channelId(channel.getChannelId())
                 .type(createChannelRequest.getType())
+                .isAggregates(createChannelRequest.getIsAggregates())
                 .subtype(createChannelRequest.getSubtype())
                 .selectKeyHash(createChannelRequest.getSelectKeyHash())
                 .selectKeys(createChannelRequest.getSelectKeys())
@@ -135,12 +141,7 @@ public class ChannelServiceImpl implements ChannelService {
     @Override
     public List<ChannelDataResponse> getChannel(CustomUserDetails customUserDetails, Long companyTeamId, Long companyId, Long channelId) {
         getAccessible(customUserDetails , companyId,companyTeamId);
-        // 조회
-        ChannelSetting channelSetting = channelSettingRepository.findById(channelId)
-                .orElseThrow(() -> new IllegalArgumentException("ChannelSetting not found for channelId: " + channelId));        // 설정 찾고 설정 찾은거 dto로 만든다음에 넘겨줌
-        QueryRequest queryRequest = mapChannelSettingToQueryRequest(channelSetting);
-
-        return dataManagementService.findChannelData(queryRequest, companyId);
+        return dataManagementService.findChannelData(channelId, companyId);
     }
     @Override
     public ChannelListResponse listChannels(CustomUserDetails customUserDetails, Long companyId, List<Long> companyTeamIds ) {
@@ -272,13 +273,14 @@ public class ChannelServiceImpl implements ChannelService {
         return channel;
     }
     private ChannelSetting.AggregatesFilter mapAggregatesFilter(UpdateChannelWithAggregationRequest.AggregatesFilter dtoFilter) {
-        List<ChannelSetting.CaseWhen> entityCaseWhens = dtoFilter.getCaseWhen()
-                .stream()
-                .map(dtoCaseWhen -> ChannelSetting.CaseWhen.builder()
-                        .when(dtoCaseWhen.getWhen())
-                        .then(dtoCaseWhen.getThen())
-                        .build())
-                .collect(Collectors.toList());
+        List<ChannelSetting.CaseWhen> entityCaseWhens = dtoFilter.getCaseWhen() != null ?
+                dtoFilter.getCaseWhen()
+                        .stream()
+                        .map(dtoCaseWhen -> ChannelSetting.CaseWhen.builder()
+                                .when(dtoCaseWhen.getWhen())
+                                .then(dtoCaseWhen.getThen())
+                                .build())
+                        .collect(Collectors.toList()) : null;
 
         return ChannelSetting.AggregatesFilter.builder()
                 .field(dtoFilter.getField())
@@ -336,43 +338,5 @@ public class ChannelServiceImpl implements ChannelService {
                 .when(caseWhen.getWhen())
                 .then(caseWhen.getThen())
                 .build();
-    }
-
-    private QueryRequest mapChannelSettingToQueryRequest(ChannelSetting channelSetting) {
-        QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setType(channelSetting.getType());
-        queryRequest.setSubtype(channelSetting.getSubtype());
-        queryRequest.setHashKey(channelSetting.getSelectKeyHash());
-        queryRequest.setAggregates(channelSetting.getFilters() != null);
-
-        QueryRequest.Filters filters = new QueryRequest.Filters();
-
-        if (channelSetting.getFilters().getAggregates() != null) {
-            filters.setAggregates((QueryRequest.Aggregates) channelSetting.getFilters().getAggregates().getGroupBy());
-        }
-
-        if (channelSetting.getFilters() != null && channelSetting.getFilters().getAggregatesFilter() != null) {
-            List<QueryRequest.AggregatesFilter> aggregatesFilters = channelSetting.getFilters().getAggregatesFilter().stream()
-                    .map(af -> QueryRequest.AggregatesFilter.builder()
-                            .field(af.getField())
-                            .type(af.getType())
-                            .case_when(
-                                    af.getCaseWhen().stream()
-                                            .map(cw -> QueryRequest.CaseWhen.builder()
-                                                    .when(cw.getWhen())
-                                                    .then(cw.getThen())
-                                                    .build())
-                                            .collect(Collectors.toList())
-                            )
-                            .build())
-                    .collect(Collectors.toList());
-            filters.setAggregatesfilter(aggregatesFilters);
-        }
-        if (channelSetting.getFilters().getOrderBy() != null) {
-            filters.setOrderBy(channelSetting.getFilters().getOrderBy());
-        }
-        queryRequest.setFilters(filters);
-
-        return queryRequest;
     }
 }

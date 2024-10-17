@@ -28,12 +28,12 @@ public class ChannelController {
      * @param companyId            회사 ID
      * @return 성공 메시지
      */
-    @PostMapping("/type-only")
+    @PostMapping("/type-only/{companyId}/{companyTeamId}")
     public ResponseEntity<MessageResponse> createChannelTypeOnly(
             @RequestBody CreateChannelTypeOnlyRequest createChannelRequest,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestParam Long companyTeamId,
-            @RequestParam Long companyId) {
+            @PathVariable Long companyTeamId,
+            @PathVariable Long companyId) {
 
         MessageResponse response = channelService.createChannelTypeOnly(
                 createChannelRequest, customUserDetails, companyTeamId, companyId);
@@ -50,12 +50,12 @@ public class ChannelController {
      * @param companyId            회사 ID
      * @return 성공 메시지
      */
-    @PostMapping("/with-subtype")
+    @PostMapping("/with-subtype/{companyId}/{companyTeamId}")
     public ResponseEntity<MessageResponse> createChannelWithSubtype(
             @RequestBody CreateChannelWithSubtypeRequest createChannelRequest,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestParam Long companyTeamId,
-            @RequestParam Long companyId) {
+            @PathVariable Long companyTeamId,
+            @PathVariable Long companyId) {
 
         MessageResponse response = channelService.createChannelWithSubtype(
                 createChannelRequest, customUserDetails, companyTeamId, companyId);
@@ -66,18 +66,18 @@ public class ChannelController {
     /**
      * 집계를 포함한 채널 생성 엔드포인트
      *
-     * @param createChannelRequest 요청 DTO
-     * @param customUserDetails    인증된 사용자 정보
-     * @param companyTeamId        회사 팀 ID
-     * @param companyId            회사 ID
+     * @RequestBody createChannelRequest 요청 DTO
+     * @AuthenticationPrincipal customUserDetails    인증된 사용자 정보
+     * @PathVariable companyTeamId        회사 팀 ID
+     * @PathVariable companyId            회사 ID
      * @return 성공 메시지
      */
-    @PostMapping("/with-aggregation")
+    @PostMapping("/with-aggregation/{companyId}/{companyTeamId}")
     public ResponseEntity<MessageResponse> createChannelWithAggregation(
             @RequestBody CreateChannelWithAggregationRequest createChannelRequest,
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestParam Long companyTeamId,
-            @RequestParam Long companyId) {
+            @PathVariable Long companyTeamId,
+            @PathVariable Long companyId) {
 
         MessageResponse response = channelService.createChannelWithAggregation(
                 createChannelRequest, customUserDetails, companyTeamId, companyId);
@@ -140,11 +140,11 @@ public class ChannelController {
      * @param channelId         조회할 채널 ID
      * @return 채널 데이터 리스트
      */
-    @GetMapping("/{channelId}")
+    @GetMapping("/companies/{companyId}/teams/{companyTeamId}/{channelId}")
     public ResponseEntity<List<ChannelDataResponse>> getChannel(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
-            @RequestParam Long companyTeamId,
-            @RequestParam Long companyId,
+            @PathVariable Long companyId,
+            @PathVariable Long companyTeamId,
             @PathVariable Long channelId) {
 
         List<ChannelDataResponse> responses = channelService.getChannel(

@@ -36,7 +36,7 @@ public class CompanyUserServiceImpl implements CompanyUserService {
      */
     @Override
     @Transactional
-    public List<CompanyUserRegistrationResponse> registerUserToCompany(CustomUserDetails customUserDetails,
+    public List<CompanyUserRegistrationResponse> registerUserToCompany(CustomUserDetails customUserDetails, // TODO 실패한 요청 반환시키기
                                                                        List<UserRegistrationRequest> userRegistrationRequests,
                                                                        Long companyId) {
         authorizeAdminOrCompanyAdmin(customUserDetails,companyId);
@@ -45,7 +45,7 @@ public class CompanyUserServiceImpl implements CompanyUserService {
         List<RegistrationResults> results = userService.registerUsers(userRegistration);
 
         Map<Long, RegistrationResults> approvedResultsMap = results.stream()
-                .filter(RegistrationResults::isSuccess)
+                .filter(RegistrationResults::getIsSuccess)
                 .collect(Collectors.toMap(RegistrationResults::getCompanyUserId, Function.identity()));
 
         if (approvedResultsMap.isEmpty()) {
@@ -152,9 +152,9 @@ public class CompanyUserServiceImpl implements CompanyUserService {
      * @return 요청 성공 메시지
      */
     @Override
-    public MessageResponse requestCompanyUser(CustomUserDetails customUserDetails, Long companyId) {
+    public MessageResponse requestCompanyUser(CustomUserDetails customUserDetails, Long companyId) { // 이거 여러번 요청가능
         RegistrationResult result = userService.checkUser(customUserDetails.userId());
-        if (result.isSuccess()) {
+        if (result.getIsSuccess()) {
             companyUserRepository.save(CompanyUser.create(companyId,
                     customUserDetails.userId(),
                     AffiliationStatus.PENDING,

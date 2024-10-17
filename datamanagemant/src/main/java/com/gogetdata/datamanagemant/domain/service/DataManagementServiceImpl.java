@@ -1,13 +1,10 @@
 package com.gogetdata.datamanagemant.domain.service;
 
 import com.gogetdata.datamanagemant.application.DataManagementService;
-import com.gogetdata.datamanagemant.application.dto.data.QueryRequest;
 import com.gogetdata.datamanagemant.application.dto.data.QueryResponse;
 import com.gogetdata.datamanagemant.application.dto.types.*;
-import com.gogetdata.datamanagemant.domain.entity.KeySet;
-import com.gogetdata.datamanagemant.domain.entity.KeySetReference;
-import com.gogetdata.datamanagemant.domain.entity.SubTypeSet;
-import com.gogetdata.datamanagemant.domain.entity.TypeSet;
+import com.gogetdata.datamanagemant.domain.entity.*;
+import com.gogetdata.datamanagemant.domain.repository.ChannelSettingRepository;
 import com.gogetdata.datamanagemant.domain.repository.CompanyDataRepository;
 import com.gogetdata.datamanagemant.domain.repository.TypeSetRepository;
 import com.gogetdata.datamanagemant.infrastructure.filter.CustomUserDetails;
@@ -17,14 +14,17 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
 @RequiredArgsConstructor
 @Service
 public class DataManagementServiceImpl implements DataManagementService {
     private final TypeSetRepository repository;
     private final CompanyDataRepository companyDataRepository;
+    private final ChannelSettingRepository channelSettingRepository;
     @Override
-    public List<QueryResponse> findChannelData(QueryRequest queryRequest,Long companyId) {
-        return companyDataRepository.findChannelData(queryRequest,companyId);
+    public List<QueryResponse> findChannelData(Long companyId,Long channelId) {
+        ChannelSetting channelSetting = channelSettingRepository.findByChannelId(channelId);
+        return companyDataRepository.findChannelData(channelSetting,companyId);
     }
     public TypeResponse findType(CustomUserDetails customUserDetails, Long companyId) {
         getAccessibleAdmin(customUserDetails,companyId);

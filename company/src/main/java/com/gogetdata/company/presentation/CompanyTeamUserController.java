@@ -8,6 +8,7 @@ import com.gogetdata.company.application.dto.companyteamuser.CompanyTeamUserResp
 import com.gogetdata.company.application.dto.companyteamuser.UpdateUserPerMissionRequest;
 import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.annotations.Fetch;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class CompanyTeamUserController {
         MessageResponse response = companyTeamUserService.applyToJoinTeam(customUserDetails,companyId,companyTeamId);
         return ResponseEntity.ok(response);
     }
-    @PostMapping("/{companyId}/teams/{companyTeamId}/users")
+    @PutMapping("/{companyId}/teams/{companyTeamId}/users")
     public ResponseEntity<List<MessageResponse>> acceptJoinRequest(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                                    @PathVariable Long companyId,
                                                                    @PathVariable Long companyTeamId ,

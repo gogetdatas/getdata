@@ -120,9 +120,9 @@ public class CompanyTeamUserRepositoryImpl implements CompanyTeamUserRepositoryC
     public List<CompanyTeam> getMyTeams(Long userId) {
         return queryFactory.select(companyTeam)
                 .from(companyTeam)
-                .innerJoin(companyTeam).on(companyTeam.companyTeamId.eq(companyTeamUser.companyTeamId))
+                .innerJoin(companyTeamUser)
+                .on(companyTeam.companyTeamId.eq(companyTeamUser.companyTeamId))
                 .where(companyTeamUser.userId.eq(userId)
-                        .and(companyTeamUser.companyTeamUserId.eq(userId))
                         .and(companyTeam.companyTeamStatus.eq(CompanyTeamStatus.APPROVED))
                         .and(companyTeamUser.isDeleted.eq(false))
                         .and(companyTeam.isDeleted.eq(false))
