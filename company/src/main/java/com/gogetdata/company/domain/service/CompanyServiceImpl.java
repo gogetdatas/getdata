@@ -15,6 +15,9 @@ import com.gogetdata.company.domain.repository.company.CompanyRepository;
 import com.gogetdata.company.domain.repository.companyuser.CompanyUserRepository;
 import com.gogetdata.company.infrastructure.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,19 +36,15 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public CompanyResponse createCompany(CustomUserDetails customUserDetails, CreateCompanyRequest createCompanyRequest) {
-
         Company company = Company.create(
                 createCompanyRequest.getCompanyName(),
                 UUID.randomUUID().toString()
         );
         companyRepository.save(company);
-        System.out.println();
         RegistrationResult result = userService.registerUser(customUserDetails.userId(),company.getCompanyId());
-        System.out.println();
         if (!result.getIsSuccess()) {
             throw new IllegalAccessError("이미 소속되어 있습니다.");
             }
-
         CompanyUser companyUser = CompanyUser.create(
                 company.getCompanyId(),
                 customUserDetails.userId(),
@@ -61,6 +60,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "companies", key = "#companyId")
     public CompanyResponse readCompany(CustomUserDetails customUserDetails, Long companyId) {
         Company company = getReadableCompany(customUserDetails, companyId);
         return CompanyResponse.from(company);
@@ -68,6 +68,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
+    @CachePut(value = "companies", key = "#companyId")
     public CompanyResponse updateCompany(CustomUserDetails customUserDetails, Long companyId, UpdateCompanyRequest updateCompanyRequest) {
         Company company = getAdminAccessibleCompany(customUserDetails, companyId);
         company.updateCompany(updateCompanyRequest.getCompanyName());
@@ -77,6 +78,7 @@ public class CompanyServiceImpl implements CompanyService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "companies", key = "#companyId")
     public MessageResponse deleteCompany(CustomUserDetails customUserDetails,Long companyId) {
         Company company = getAdminAccessibleCompany(customUserDetails, companyId);
         company.delete();
@@ -161,6 +163,7 @@ public class CompanyServiceImpl implements CompanyService {
      * @param role 사용자 정보
      * @return Admin 여부
      */
+
     private boolean isAdmin(String role) {
         return role.equals("ADMIN");
     }
@@ -171,7 +174,7 @@ public class CompanyServiceImpl implements CompanyService {
      * @param companyId 회사 ID
      * @return 회사 엔티티
      */
-    private Company findCompany(Long companyId) {
+        public Company findCompany(Long companyId) {
         return companyRepository.findById(companyId)
                 .orElseThrow(() -> new NoSuchElementException("해당 ID로 회사를 찾을 수 없습니다: " + companyId));
     }

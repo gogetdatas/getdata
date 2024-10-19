@@ -36,7 +36,7 @@ public class CompanyUserServiceImpl implements CompanyUserService {
      */
     @Override
     @Transactional
-    public List<CompanyUserRegistrationResponse> registerUserToCompany(CustomUserDetails customUserDetails, // TODO 실패한 요청 반환시키기
+    public List<CompanyUserRegistrationResponse> registerUserToCompany(CustomUserDetails customUserDetails,
                                                                        List<UserRegistrationRequest> userRegistrationRequests,
                                                                        Long companyId) {
         authorizeAdminOrCompanyAdmin(customUserDetails,companyId);
@@ -180,7 +180,6 @@ public class CompanyUserServiceImpl implements CompanyUserService {
         CompanyUser companyUser = companyUserRepository.waitingForApprovalUser(companyId, companyUserId);
         companyUser.updateStatusUserCompany(AffiliationStatus.REJECTED);
         companyUserRepository.save(companyUser);
-        // TODO: 거부 처리 시 사용자에게 알림을 보내는 로직 추가 가능
         return MessageResponse.from("거절완료");
     }
 
