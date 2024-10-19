@@ -15,7 +15,6 @@ version = '0.0.1-SNAPSHOT'
 ext {
     set('springCloudVersion', "2023.0.2")
     set('querydslVersion', "5.0.0")  // QueryDSL 버전 명시적으로 설정
-
 }
 
 repositories {
@@ -45,6 +44,8 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'io.lettuce:lettuce-core'
 }
 dependencyManagement {
     imports {
