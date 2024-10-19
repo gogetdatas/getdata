@@ -11,6 +11,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,10 +50,8 @@ public class AuthService {
             throw new IllegalArgumentException("해당 이메일 존재함");
         }
     }
-
     public AuthResponse signIn(signInRequest signInRequest) {
-        User user =userRepository.findByemail(signInRequest.getEmail())
-                .orElseThrow(()->new IllegalArgumentException("존재하지않음"));
+        User user = findByEmail(signInRequest.getEmail());
         if(!passwordEncoder.matches(signInRequest.getPassword(),user.getPassword())){
             throw new IllegalArgumentException("비밀번호가 다름");
         }
@@ -70,8 +69,18 @@ public class AuthService {
                 .compact());
     }
     public Boolean verifyUser(final Long userId) {
+        return findById(userId) != null;
+    }
+    public User findByEmail(String email){
+        return userRepository.findByemail(email)
+                .orElseThrow(()->new IllegalArgumentException("존재하지않음"));
+    }
+    @Cacheable(value = "usersById", key = "#userId")
+    public User findById(Long userId){
         return userRepository.findById(userId)
-                .map(user -> !user.isDeleted())
-                .orElse(false);
+                .filter(o -> !o.isDeleted())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("존재하지않음")
+                );
     }
 }
