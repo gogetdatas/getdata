@@ -13,6 +13,8 @@ import com.gogetdata.channel.domain.repository.ChannelRepository;
 import com.gogetdata.channel.domain.repository.ChannelSettingRepository;
 import com.gogetdata.channel.infrastructrue.filter.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -120,8 +122,7 @@ public class ChannelServiceImpl implements ChannelService {
         getAccessibleAdmin(customUserDetails , companyId,companyTeamId);
         getAccessibleAdminChannel(companyTeamId,channelId);
         Channel channel=validateChannelNotDeleted(findChannel(channelId));
-        channel.delete();
-        channelRepository.save(channel);
+        channelDelete(channel);
         return MessageResponse.from("채널삭제");
     }
 
@@ -133,10 +134,10 @@ public class ChannelServiceImpl implements ChannelService {
         getAccessibleAdmin(customUserDetails , companyId,companyTeamId);
         getAccessibleAdminChannel(companyTeamId,channelId);
         Channel channel=validateChannelNotDeleted(findChannel(channelId));
-        channel.updateName(updateChannelNameRequest.getChannelName());
-        channelRepository.save(channel);
+        channelUpdate(channel, updateChannelNameRequest.getChannelName());
         return MessageResponse.from("채널수정");
     }
+
 
     @Override
     public List<ChannelDataResponse> getChannel(CustomUserDetails customUserDetails, Long companyTeamId, Long companyId, Long channelId) {
@@ -262,9 +263,21 @@ public class ChannelServiceImpl implements ChannelService {
             throw new IllegalAccessError("권한없음");
         }
     }
-    private Channel findChannel(Long channelId){
+    @Cacheable(value = "channels", key = "#channelId")
+    public Channel findChannel(Long channelId){
         return channelRepository.findById(channelId)
                 .orElseThrow(() -> new NoSuchElementException("해당 ID로 채널을 찾을 수 없습니다: " + channelId));
+    }
+    @Cacheable(value = "channels", key = "#channel.channelId")
+    public Channel channelDelete(Channel channel) {
+        channel.delete();
+        channelRepository.save(channel);
+        return channel;
+    }
+    @CachePut(value = "channels", key = "#channelId")
+    public Channel channelUpdate(Channel channel, String channelName) {
+        channel.updateName(channelName);
+        return channelRepository.save(channel);
     }
     private Channel validateChannelNotDeleted(Channel channel) {
         if (channel.isDeleted()) {
