@@ -5,6 +5,9 @@ import com.gogetdata.user.application.dto.*;
 import com.gogetdata.user.domain.entity.User;
 import com.gogetdata.user.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +29,7 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
+    @CachePut(value = "usersById", key = "#userId")
     public MyInfoResponse updateMyInfo(Long userId, Long loginUserId,String role, UpdateMyInfoRequest updateMyInfoRequest) {
         checkAuth(userId, loginUserId,role);
         User user = getUserIfNotDeleted(userId);
@@ -36,6 +40,7 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
+    @CacheEvict(value = "usersById", key = "#userId")
     public DeleteUserResponse deleteUser(Long userId, Long loginUserId,String role) {
         checkAuth(userId, loginUserId,role);
         User user = getUserIfNotDeleted(userId);
@@ -56,8 +61,7 @@ public class UserServiceImpl implements UserService {
                 if (user.getCompanyId() != null) {
                     results.add(RegistrationResults.from(registrationDto.getCompanyUserId(), registrationDto.getUserId(), false, registrationDto.getType(), user.getUserName()));
                 } else {
-                    user.registration(userRegistration.getCompanyId(), registrationDto.getType());
-                    userRepository.save(user);
+                    resister(user,userRegistration.getCompanyId(),registrationDto.getType());
                     results.add(RegistrationResults.from(registrationDto.getCompanyUserId(), registrationDto.getUserId(), true, registrationDto.getType(), user.getUserName()));
                 }
 
@@ -69,6 +73,7 @@ public class UserServiceImpl implements UserService {
     }
     @Override
     @Transactional
+    @CacheEvict(value = "usersById", key = "#userId")
     public Boolean deleteCompanyUser(Long userId) {
         User user = verify(userId);
         user.registrationCancel();
@@ -109,23 +114,29 @@ public class UserServiceImpl implements UserService {
             throw new IllegalAccessError("User ID " + userId + " does not have access rights.");
         }
     }
-
+    @Cacheable(value = "usersById", key = "#userId")
     public User verify(Long userId) {
         return getUserIfNotDeleted(userId);
     }
-
     private User getUserIfNotDeleted(Long userId) {
         User user = readUser(userId);
         return validateUserNotDeleted(user);
     }
+
     public User readUser(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new NoSuchElementException("No user found with id " + userId));
     }
+
     public User validateUserNotDeleted(User user) {
         if (user.isDeleted()) {
             throw new NoSuchElementException("User with id " + user.getUserId() + " is deleted.");
         }
         return user;
+    }
+    @CachePut(value = "usersById", key = "#user.userId")
+    public User resister(User user,Long companyId , String companyType) {
+        user.registration(companyId, companyType);
+        return userRepository.save(user);
     }
 }

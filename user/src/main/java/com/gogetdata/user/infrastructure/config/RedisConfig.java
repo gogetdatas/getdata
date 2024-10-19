@@ -1,4 +1,4 @@
-package com.gogetdata.auth.Infrastructure.config;
+package com.gogetdata.user.infrastructure.config;
 
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -16,7 +16,6 @@ import java.time.Duration;
 public class RedisConfig {
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory redisConnectionFactory) {
-        // 직렬화 설정 (JSON 직렬화 사용)
         RedisSerializationContext.SerializationPair<Object> jsonSerializer =
                 RedisSerializationContext.SerializationPair.fromSerializer(
                         new GenericJackson2JsonRedisSerializer()

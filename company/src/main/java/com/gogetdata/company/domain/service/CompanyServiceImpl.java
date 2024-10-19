@@ -33,19 +33,15 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public CompanyResponse createCompany(CustomUserDetails customUserDetails, CreateCompanyRequest createCompanyRequest) {
-
         Company company = Company.create(
                 createCompanyRequest.getCompanyName(),
                 UUID.randomUUID().toString()
         );
         companyRepository.save(company);
-        System.out.println();
         RegistrationResult result = userService.registerUser(customUserDetails.userId(),company.getCompanyId());
-        System.out.println();
         if (!result.getIsSuccess()) {
             throw new IllegalAccessError("이미 소속되어 있습니다.");
             }
-
         CompanyUser companyUser = CompanyUser.create(
                 company.getCompanyId(),
                 customUserDetails.userId(),
